@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -12,13 +12,19 @@ const tileManager = new TileManager()
 tileManager.addTile('terminal')
 
 function createWindow() {
+  // Cover the full screen without entering macOS native fullscreen Space.
+  const { width, height } = screen.getPrimaryDisplay().bounds
+
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width,
+    height,
+    x: 0,
+    y: 0,
     show: false,
     frame: false,
     roundedCorners: false,
+    alwaysOnTop: true,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
@@ -26,6 +32,9 @@ function createWindow() {
       sandbox: false
     }
   })
+
+  // Appear on every macOS Space so it overlays wherever the user is.
+  mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()

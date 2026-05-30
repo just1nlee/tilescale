@@ -3,8 +3,13 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import PtyManager from './PtyManager'
+import TileManager from './TileManager'
 
 const ptyManager = new PtyManager()
+const tileManager = new TileManager()
+
+// Start with one terminal tile so there's something to display on launch.
+tileManager.addTile('terminal')
 
 function createWindow() {
   // Create the browser window.
@@ -56,6 +61,13 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  // Renderer reports its real pixel size → recalculate bounds → push layout back.
+  // event.sender is the webContents that sent the message.
+  ipcMain.on('tile:resize', (event, { width, height }) => {
+    tileManager.setWindowSize(width, height)
+    event.sender.send('tile:layout', tileManager.getLayout())
+  })
 
   createWindow()
 

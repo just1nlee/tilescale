@@ -4,9 +4,11 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import PtyManager from './PtyManager'
 import TileManager from './TileManager'
+import ModeManager from './ModeManager'
 
 const ptyManager = new PtyManager()
 const tileManager = new TileManager()
+const modeManager = new ModeManager()
 
 // Start with one terminal tile so there's something to display on launch.
 tileManager.addTile('terminal')
@@ -42,6 +44,7 @@ function createWindow() {
     mainWindow.show()
     // Spawn the shell once the renderer is ready to receive pty:data messages.
     ptyManager.spawn(mainWindow.webContents)
+    modeManager.attach(mainWindow.webContents)
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {

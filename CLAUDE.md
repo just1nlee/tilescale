@@ -2,6 +2,8 @@
 
 Tilescale is a macOS-only Electron app that acts as a keyboard-driven tiling window manager. It runs as a background app and is summoned via a global hotkey. Tiles are either **browser** (`WebContentsView` with URL bar + back/forward/reload) or **terminal** (xterm.js + node-pty). Layout is automatic equal-split — no dragging.
 
+Workspaces (1–5) work exactly like i3: each workspace has its own independent set of tiles. Pressing `1`–`5` in TILE mode switches to that workspace instantly. Switching preserves each workspace's tiles exactly as left.
+
 ## How to Work With Me
 You are a coding tutor, not just a code generator. Follow these rules on every step:
 
@@ -36,6 +38,7 @@ You are a coding tutor, not just a code generator. Follow these rules on every s
 | `B` | Spawn new browser tile |
 | `T` | Spawn new terminal tile |
 | `Q` | Close focused tile |
+| `1`–`5` | Switch to workspace 1–5 |
 
 ### INSERT Mode
 All keystrokes pass directly to the focused tile. `Shift+Enter` returns to TILE mode.
@@ -45,13 +48,22 @@ Tiles divide screen space equally at all times. No dragging, no manual resize.
 - Spawn tile → all tiles recalculate to equal-width columns
 - Close tile → remaining tiles redistribute equally
 - Focused tile has a glowing border. Unfocused tiles have a normal border.
-- `StatusBar` always visible showing current mode: `-- TILE --` or `-- INSERT --`
+- `StatusBar` always visible showing current mode and active workspace: `-- TILE -- [2]`
+
+## Workspaces
+There are 5 workspaces numbered 1–5, mirroring i3 behavior exactly.
+- Each workspace holds its own independent tile array and focused tile.
+- Pressing `1`–`5` in TILE mode switches the active workspace immediately.
+- Switching away preserves the old workspace's tiles in memory; switching back restores them.
+- PTY processes for inactive workspaces keep running in the background.
+- Workspace 1 is active on launch; all other workspaces start empty.
+- `TileManager` owns the workspace map: `{ [workspaceId]: { tiles, focusedId } }`.
 
 ## Architecture
 ```
 Main Process (Node.js)
 ├── WindowManager   — fullscreen always-on-top BrowserWindow, show/hide on Option+Space
-├── TileManager     — tile array, auto-split bounds calculation, focus tracking
+├── TileManager     — workspace map, tile array per workspace, auto-split bounds, focus tracking
 ├── PtyManager      — node-pty spawn/kill/IO per terminal tile
 ├── SessionManager  — save/restore session JSON and current mode
 ├── ModeManager     — INSERT vs TILE state, Shift+Space handler, globalShortcut
@@ -75,10 +87,13 @@ Renderer Process (React + Vite)
 
 ## Session Schema
 ```json
-{ "version": 1, "mode": "TILE", "tiles": [
-  { "id": "uuid", "type": "browser", "url": "https://..." },
-  { "id": "uuid", "type": "terminal", "cwd": "/home/user" }
-]}
+{ "version": 1, "mode": "TILE", "activeWorkspace": 1, "workspaces": {
+  "1": { "tiles": [
+    { "id": "uuid", "type": "browser", "url": "https://..." },
+    { "id": "uuid", "type": "terminal", "cwd": "/home/user" }
+  ]},
+  "2": { "tiles": [] }
+}}
 ```
 Save on `app.before-quit`. Restore on launch. Tiles re-split equally on restore. Graceful fallback if file missing.
 

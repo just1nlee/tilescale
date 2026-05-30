@@ -85,6 +85,21 @@ app.whenReady().then(() => {
     event.sender.send('tile:layout', tileManager.getLayout())
   })
 
+  ipcMain.on('tile:spawn', (event, type) => {
+    tileManager.addTile(type)
+    event.sender.send('tile:layout', tileManager.getLayout())
+  })
+
+  ipcMain.on('tile:close', (event, id) => {
+    tileManager.removeTile(id)
+    event.sender.send('tile:layout', tileManager.getLayout())
+  })
+
+  ipcMain.on('tile:focus', (event, id) => {
+    tileManager.setFocus(id)
+    event.sender.send('tile:layout', tileManager.getLayout())
+  })
+
   createWindow()
 
   // Global hotkey 

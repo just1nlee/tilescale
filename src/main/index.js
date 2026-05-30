@@ -18,6 +18,7 @@ function createWindow() {
     height: 670,
     show: false,
     frame: false,
+    roundedCorners: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {

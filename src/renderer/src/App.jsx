@@ -1,9 +1,9 @@
-import TerminalTile from './components/TerminalTile'
+import TileGrid from './components/TileGrid'
 
 function App() {
   return (
     <div style={{ width: '100%', height: '100%' }}>
-      <TerminalTile />
+      <TileGrid />
     </div>
   )
 }

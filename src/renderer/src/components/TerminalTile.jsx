@@ -22,8 +22,25 @@ function TerminalTile() {
     // pty:data - subscribe to shell output from main process
     window.pty.onData((data) => terminal.write(data))
 
-    // pty:write - send keystrokes to main process
-    terminal.onData((data) => window.pty.write(data))
+    // Detect Shift+Enter and toggle mode. Return true so xterm still generates
+    // the \r via onData — we swallow it there before it reaches the PTY.
+    let swallowNextCR = false
+    terminal.attachCustomKeyEventHandler((e) => {
+      if (e.type === 'keydown' && e.shiftKey && e.key === 'Enter') {
+        window.mode.toggle()
+        swallowNextCR = true
+      }
+      return true
+    })
+
+    // pty:write - send keystrokes to main process, filtering the \r from Shift+Enter.
+    terminal.onData((data) => {
+      if (swallowNextCR && data === '\r') {
+        swallowNextCR = false
+        return
+      }
+      window.pty.write(data)
+    })
 
     // Clean up xterm when the component unmounts.
     return () => terminal.dispose()

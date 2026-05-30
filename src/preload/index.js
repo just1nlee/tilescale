@@ -12,13 +12,20 @@ const pty = {
   write: (data) => ipcRenderer.send('pty:write', data)
 }
 
-
 // Tile API — exposes layout channels to the renderer:
 //   tile.resize(w, h)   — report real window pixel dimensions to main
 //   tile.onLayout(cb)   — subscribe to layout updates pushed from main
 const tile = {
   resize: (width, height) => ipcRenderer.send('tile:resize', { width, height }),
   onLayout: (callback) => ipcRenderer.on('tile:layout', (_event, layout) => callback(layout))
+}
+
+// Mode API — exposes INSERT/TILE mode channels to the renderer:
+//   mode.toggle()       — ask main to flip the current mode
+//   mode.onChange(cb)   — subscribe to mode updates pushed from main
+const mode = {
+  toggle: () => ipcRenderer.send('mode:toggle'),
+  onChange: (callback) => ipcRenderer.on('mode:changed', (_event, m) => callback(m))
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
@@ -30,6 +37,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('api', api)
     contextBridge.exposeInMainWorld('pty', pty)
     contextBridge.exposeInMainWorld('tile', tile)
+    contextBridge.exposeInMainWorld('mode', mode)
   } catch (error) {
     console.error(error)
   }
@@ -38,4 +46,5 @@ if (process.contextIsolated) {
   window.api = api
   window.pty = pty
   window.tile = tile
+  window.mode = mode
 }

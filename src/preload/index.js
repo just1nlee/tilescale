@@ -12,6 +12,15 @@ const pty = {
   write: (data) => ipcRenderer.send('pty:write', data)
 }
 
+
+// Tile API — exposes layout channels to the renderer:
+//   tile.resize(w, h)   — report real window pixel dimensions to main
+//   tile.onLayout(cb)   — subscribe to layout updates pushed from main
+const tile = {
+  resize: (width, height) => ipcRenderer.send('tile:resize', { width, height }),
+  onLayout: (callback) => ipcRenderer.on('tile:layout', (_event, layout) => callback(layout))
+}
+
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.
@@ -20,6 +29,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
     contextBridge.exposeInMainWorld('pty', pty)
+    contextBridge.exposeInMainWorld('tile', tile)
   } catch (error) {
     console.error(error)
   }
@@ -27,4 +37,5 @@ if (process.contextIsolated) {
   window.electron = electronAPI
   window.api = api
   window.pty = pty
+  window.tile = tile
 }

@@ -2,6 +2,9 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import PtyManager from './PtyManager'
+
+const ptyManager = new PtyManager()
 
 function createWindow() {
   // Create the browser window.
@@ -19,6 +22,8 @@ function createWindow() {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
+    // Spawn the shell once the renderer is ready to receive pty:data messages.
+    ptyManager.spawn(mainWindow.webContents)
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -65,6 +70,8 @@ app.whenReady().then(() => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+  // Kill the shell process so it doesn't linger after the app closes.
+  ptyManager.kill()
   if (process.platform !== 'darwin') {
     app.quit()
   }

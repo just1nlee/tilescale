@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, screen, globalShortcut } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -11,12 +11,14 @@ const tileManager = new TileManager()
 // Start with one terminal tile so there's something to display on launch.
 tileManager.addTile('terminal')
 
+let mainWindow = null
+
 function createWindow() {
   // Cover the full screen without entering macOS native fullscreen Space.
   const { width, height } = screen.getPrimaryDisplay().bounds
 
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width,
     height,
     x: 0,
@@ -82,6 +84,15 @@ app.whenReady().then(() => {
 
   createWindow()
 
+  // Global hotkey
+  globalShortcut.register('Control+Space', () => {
+    if (mainWindow.isVisible()) {
+      mainWindow.hide()
+    } else {
+      mainWindow.show()
+    }
+  })
+
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
@@ -95,6 +106,7 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   // Kill the shell process so it doesn't linger after the app closes.
   ptyManager.kill()
+  globalShortcut.unregisterAll()
   if (process.platform !== 'darwin') {
     app.quit()
   }

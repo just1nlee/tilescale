@@ -4,16 +4,18 @@ import { electronAPI } from '@electron-toolkit/preload'
 // Custom APIs for renderer
 const api = {}
 
-// PTY API — exposes exactly two channels to the renderer:
-//   pty.onData(cb)  — subscribe to shell output
-//   pty.write(data) — send a keystroke to the shell
+// PTY API — exposes channels to the renderer:
+//   pty.onData(cb)              — subscribe to shell output
+//   pty.write(id, data)         — send a keystroke to the shell
+//   pty.resize(id, cols, rows)  — report the terminal cell-grid size to main
 const pty = {
   onData: (callback) => {
     const handler = (_event, { id, data }) => callback(id, data)
     ipcRenderer.on('pty:data', handler)
     return () => ipcRenderer.removeListener('pty:data', handler)
   },
-  write: (id, data) => ipcRenderer.send('pty:write', { id, data })
+  write: (id, data) => ipcRenderer.send('pty:write', { id, data }),
+  resize: (id, cols, rows) => ipcRenderer.send('pty:resize', { id, cols, rows })
 }
 
 // Tile API — exposes layout channels to the renderer:

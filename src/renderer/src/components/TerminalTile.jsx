@@ -52,6 +52,7 @@ function TerminalTile({ id, isFocused }) {
 
     // Size the terminal to fill its container (sets cols/rows from pixel dimensions).
     fitAddon.fit()
+    window.pty.resize(id, terminal.cols, terminal.rows)
 
     terminalRef.current = terminal
 
@@ -70,7 +71,21 @@ function TerminalTile({ id, isFocused }) {
       window.pty.write(id, data)
     })
 
+    // Keep xterm and the kernel pty winsize in sync with the container's real
+    // pixel size. Fires on window resize, on neighbor tile spawn/close, and
+    // when the workspace flips back to visible at a new size.
+    const observer = new ResizeObserver(() => {
+      const el = containerRef.current
+      if (!el) return
+      // Hidden workspaces report 0×0 via display:none — don't shrink the pty.
+      if (el.clientWidth === 0 || el.clientHeight === 0) return
+      fitAddon.fit()
+      window.pty.resize(id, terminal.cols, terminal.rows)
+    })
+    observer.observe(containerRef.current)
+
     return () => {
+      observer.disconnect()
       unsubscribe()
       terminal.dispose()
     }

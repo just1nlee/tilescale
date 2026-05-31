@@ -9,6 +9,13 @@ class PtyManager {
     ipcMain.on('pty:write', (_event, { id, data }) => {
       this.processes.get(id)?.write(data)
     })
+
+    // Renderer reports the terminal's pixel-grid size in cells. We forward it
+    // to node-pty, which sets the kernel pty winsize and raises SIGWINCH so
+    // the shell knows where to wrap lines.
+    ipcMain.on('pty:resize', (_event, { id, cols, rows }) => {
+      this.processes.get(id)?.resize(cols, rows)
+    })
   }
 
   spawn(id, webContents) {

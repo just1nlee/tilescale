@@ -27,6 +27,8 @@ function createWindow() {
     y: 0,
     show: false,
     frame: false,
+    transparent: true,
+    backgroundColor: '#00000000',
     roundedCorners: true,
     alwaysOnTop: true,
     autoHideMenuBar: true,

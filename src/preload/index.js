@@ -62,6 +62,9 @@ const browser = {
   // Tell main when the URL bar gains/loses focus so it won't steal focus back
   // to the native page mid-type.
   setEditing: (id, editing) => ipcRenderer.send('browser:set-editing', { id, editing }),
+  // Tell main to hide/show all native browser views while a React overlay (the
+  // profile selector) is open, so it isn't occluded by views floating on top.
+  setOverlay: (open) => ipcRenderer.send('browser:set-overlay', open),
   onState: (callback) => {
     const handler = (_event, state) => callback(state)
     ipcRenderer.on('browser:state', handler)

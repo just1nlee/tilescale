@@ -279,6 +279,14 @@ app.whenReady().then(() => {
     switchProfile(event.sender, created.id)
   })
 
+  // A React overlay (profile selector) opened/closed. Native browser views sit
+  // above the React page, so we hide them while it's up. broadcastLayout's
+  // applyLayout pass applies the new visibility.
+  ipcMain.on('browser:set-overlay', (event, open) => {
+    browserManager.setOverlay(open)
+    broadcastLayout(event.sender)
+  })
+
   // Browser navigation IPC — routed straight to the native WebContentsView
   // that BrowserManager owns for the given tile id.
   ipcMain.on('browser:navigate', (_event, { id, url }) => browserManager.navigate(id, url))

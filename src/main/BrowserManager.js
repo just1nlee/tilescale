@@ -44,6 +44,11 @@ class BrowserManager {
     // Tile id whose React URL bar currently holds focus. While set, we must not
     // steal OS focus to that tile's native page or the user can't type a URL.
     this.editingId = null
+    // True while a React overlay (the profile selector) is open. Native
+    // WebContentsViews always composite ABOVE the React page, so CSS z-index
+    // can't put the dropdown over a browser tile — instead we hide every view
+    // while the overlay is up, then applyLayout restores them on close.
+    this.overlayOpen = false
   }
 
   // Call once the BrowserWindow exists so we have something to parent views to.
@@ -190,7 +195,9 @@ class BrowserManager {
         this._create(tile.id, tile.url)
         const view = this.views.get(tile.id)
 
-        if (!isActive || !tile.bounds) {
+        // Hide views in inactive workspaces, views without bounds yet, and ALL
+        // views while a React overlay is open (so the dropdown isn't occluded).
+        if (!isActive || !tile.bounds || this.overlayOpen) {
           view.setVisible(false)
           continue
         }
@@ -205,6 +212,12 @@ class BrowserManager {
         })
       }
     }
+  }
+
+  // Toggle the overlay state. The caller follows this with a layout broadcast,
+  // whose applyLayout pass reads the flag and (un)hides the native views.
+  setOverlay(open) {
+    this.overlayOpen = open
   }
 
   // The renderer reports when a tile's URL bar gains/loses focus so we know not

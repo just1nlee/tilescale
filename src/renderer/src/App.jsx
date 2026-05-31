@@ -32,6 +32,12 @@ function App() {
     }
   }, [])
 
+  // Native browser views composite above the React page and would cover the
+  // profile dropdown, so ask main to hide them whenever the selector is open.
+  useEffect(() => {
+    window.browser.setOverlay(selectorOpen)
+  }, [selectorOpen])
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Let the "new profile" name field receive keys normally — without this,

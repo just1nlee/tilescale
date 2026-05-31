@@ -83,6 +83,7 @@ app.whenReady().then(() => {
 
   ipcMain.on('tile:spawn', (event, type) => {
     const id = tileManager.addTile(type)
+    if (id === null) return
     if (type === 'terminal') ptyManager.spawn(id, event.sender)
     event.sender.send('tile:layout', tileManager.getLayout())
   })

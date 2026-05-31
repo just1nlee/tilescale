@@ -15,8 +15,9 @@ class TileManager {
     this._recalculate()
   }
 
-  // Adds a tile of the given type, focuses it, returns its id.
+  // Adds a tile of the given type, focuses it, returns its id. Max 4 tiles.
   addTile(type) {
+    if (this.tiles.length >= 4) return null
     const id = randomUUID()
     this.tiles.push({ id, type, bounds: null })
     this.focusedId = id
@@ -49,20 +50,30 @@ class TileManager {
     }
   }
 
-  // Divides window width into equal columns. Last tile absorbs rounding remainder.
+  // Fractional layouts per tile count. Each entry is [{ x, y, w, h }] in 0–1 space.
+  static LAYOUTS = [
+    null,
+    [{ x: 0, y: 0, w: 1, h: 1 }],
+    [{ x: 0, y: 0, w: 0.5, h: 1 }, { x: 0.5, y: 0, w: 0.5, h: 1 }],
+    [{ x: 0, y: 0, w: 0.5, h: 1 }, { x: 0.5, y: 0, w: 0.5, h: 0.5 }, { x: 0.5, y: 0.5, w: 0.5, h: 0.5 }],
+    [{ x: 0, y: 0, w: 0.5, h: 0.5 }, { x: 0.5, y: 0, w: 0.5, h: 0.5 }, { x: 0, y: 0.5, w: 0.5, h: 0.5 }, { x: 0.5, y: 0.5, w: 0.5, h: 0.5 }]
+  ]
+
   _recalculate() {
     const count = this.tiles.length
     if (count === 0) return
 
-    const tileWidth = Math.floor(this.windowWidth / count)
+    const slots = TileManager.LAYOUTS[count]
+    const W = this.windowWidth
+    const H = this.windowHeight
 
     this.tiles.forEach((tile, i) => {
-      const isLast = i === count - 1
+      const s = slots[i]
       tile.bounds = {
-        x: i * tileWidth,
-        y: 0,
-        width: isLast ? this.windowWidth - i * tileWidth : tileWidth,
-        height: this.windowHeight
+        x: Math.round(s.x * W),
+        y: Math.round(s.y * H),
+        width: Math.round(s.w * W),
+        height: Math.round(s.h * H)
       }
     })
   }

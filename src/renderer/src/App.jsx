@@ -19,6 +19,23 @@ function App() {
         window.mode.toggle()
         return
       }
+
+      if (mode !== 'TILE') return
+
+      e.preventDefault()
+      e.stopPropagation()
+
+      switch (e.key.toLowerCase()) {
+        case 'b': window.tile.spawn('browser'); break
+        case 't': window.tile.spawn('terminal'); break
+        case 'q': if (layout.focusedId) window.tile.close(layout.focusedId); break
+        case 'w': console.log('focus up'); break
+        case 'a': console.log('focus left'); break
+        case 's': console.log('focus down'); break
+        case 'd': console.log('focus right'); break
+        case '1': case '2': case '3': case '4': case '5':
+          console.log('switch workspace', e.key); break
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown, true)

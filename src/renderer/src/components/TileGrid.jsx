@@ -34,7 +34,9 @@ function TileGrid() {
             height: tile.bounds.height
           }}
         >
-          {tile.type === 'terminal' && <TerminalTile />}
+          {tile.type === 'terminal' && (
+            <TerminalTile id={tile.id} isFocused={tile.id === layout.focusedId} />
+          )}
         </div>
       ))}
     </div>

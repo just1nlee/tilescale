@@ -7,8 +7,12 @@ function App() {
   const [layout, setLayout] = useState({ tiles: [], focusedId: null })
 
   useEffect(() => {
-    window.mode.onChange((m) => setMode(m))
-    window.tile.onLayout((l) => setLayout(l))
+    const unsubMode = window.mode.onChange((m) => setMode(m))
+    const unsubLayout = window.tile.onLayout((l) => setLayout(l))
+    return () => {
+      unsubMode()
+      unsubLayout()
+    }
   }, [])
 
   useEffect(() => {

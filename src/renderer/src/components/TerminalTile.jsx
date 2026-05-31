@@ -28,7 +28,7 @@ function TerminalTile({ id, isFocused }) {
     })
 
     // pty:data - only render output belonging to this tile.
-    window.pty.onData((tileId, data) => {
+    const unsubscribe = window.pty.onData((tileId, data) => {
       if (tileId === id) terminal.write(data)
     })
 
@@ -37,8 +37,10 @@ function TerminalTile({ id, isFocused }) {
       window.pty.write(id, data)
     })
 
-    // Clean up xterm when the component unmounts.
-    return () => terminal.dispose()
+    return () => {
+      unsubscribe()
+      terminal.dispose()
+    }
   }, [])
 
   // Give xterm real DOM focus whenever this tile becomes the focused tile.

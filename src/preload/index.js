@@ -8,7 +8,11 @@ const api = {}
 //   pty.onData(cb)  — subscribe to shell output
 //   pty.write(data) — send a keystroke to the shell
 const pty = {
-  onData: (callback) => ipcRenderer.on('pty:data', (_event, { id, data }) => callback(id, data)),
+  onData: (callback) => {
+    const handler = (_event, { id, data }) => callback(id, data)
+    ipcRenderer.on('pty:data', handler)
+    return () => ipcRenderer.removeListener('pty:data', handler)
+  },
   write: (id, data) => ipcRenderer.send('pty:write', { id, data })
 }
 
@@ -20,7 +24,11 @@ const pty = {
 //   tile.focus(id)      — tell main which tile is now focused
 const tile = {
   resize: (width, height) => ipcRenderer.send('tile:resize', { width, height }),
-  onLayout: (callback) => ipcRenderer.on('tile:layout', (_event, layout) => callback(layout)),
+  onLayout: (callback) => {
+    const handler = (_event, layout) => callback(layout)
+    ipcRenderer.on('tile:layout', handler)
+    return () => ipcRenderer.removeListener('tile:layout', handler)
+  },
   spawn: (type) => ipcRenderer.send('tile:spawn', type),
   close: (id) => ipcRenderer.send('tile:close', id),
   focus: (id) => ipcRenderer.send('tile:focus', id)
@@ -31,7 +39,11 @@ const tile = {
 //   mode.onChange(cb)   — subscribe to mode updates pushed from main
 const mode = {
   toggle: () => ipcRenderer.send('mode:toggle'),
-  onChange: (callback) => ipcRenderer.on('mode:changed', (_event, m) => callback(m))
+  onChange: (callback) => {
+    const handler = (_event, m) => callback(m)
+    ipcRenderer.on('mode:changed', handler)
+    return () => ipcRenderer.removeListener('mode:changed', handler)
+  }
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

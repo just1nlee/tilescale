@@ -15,9 +15,9 @@ class TileManager {
     this._recalculate()
   }
 
-  // Adds a tile of the given type, focuses it, returns its id. Max 4 tiles.
+  // Adds a tile of the given type, focuses it, returns its id. Max 2 tiles.
   addTile(type) {
-    if (this.tiles.length >= 4) return null
+    if (this.tiles.length >= 2) return null
     const id = randomUUID()
     this.tiles.push({ id, type, bounds: null })
     this.focusedId = id
@@ -40,6 +40,30 @@ class TileManager {
 
   setFocus(id) {
     this.focusedId = id
+  }
+
+  focusDirection(dir) {
+    const focused = this.getTile(this.focusedId)
+    if (!focused) return
+
+    const fc = { x: focused.bounds.x + focused.bounds.width / 2 }
+
+    const candidates = this.tiles.filter((t) => {
+      if (t.id === this.focusedId) return false
+      const cx = t.bounds.x + t.bounds.width / 2
+      if (dir === 'a') return cx < fc.x
+      if (dir === 'd') return cx > fc.x
+    })
+
+    if (candidates.length === 0) return
+
+    const nearest = candidates.reduce((best, t) => {
+      const dist = Math.abs(t.bounds.x + t.bounds.width / 2 - fc.x)
+      const bestDist = Math.abs(best.bounds.x + best.bounds.width / 2 - fc.x)
+      return dist < bestDist ? t : best
+    })
+
+    this.focusedId = nearest.id
   }
 
   // Returns the layout snapshot the renderer needs to draw tiles.

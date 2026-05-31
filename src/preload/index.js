@@ -31,7 +31,8 @@ const tile = {
   },
   spawn: (type) => ipcRenderer.send('tile:spawn', type),
   close: (id) => ipcRenderer.send('tile:close', id),
-  focus: (id) => ipcRenderer.send('tile:focus', id)
+  focus: (id) => ipcRenderer.send('tile:focus', id),
+  focusDirection: (dir) => ipcRenderer.send('tile:focus-direction', dir)
 }
 
 // Mode API — exposes INSERT/TILE mode channels to the renderer:

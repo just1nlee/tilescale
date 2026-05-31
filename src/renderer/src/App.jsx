@@ -36,10 +36,8 @@ function App() {
         case 'b': window.tile.spawn('browser'); break
         case 't': window.tile.spawn('terminal'); break
         case 'q': if (layout.focusedId) window.tile.close(layout.focusedId); break
-        case 'w': console.log('focus up'); break
-        case 'a': console.log('focus left'); break
-        case 's': console.log('focus down'); break
-        case 'd': console.log('focus right'); break
+        case 'a': case 'h': case 'arrowleft': window.tile.focusDirection('a'); break
+        case 'd': case 'l': case 'arrowright': window.tile.focusDirection('d'); break
         case '1': case '2': case '3': case '4': case '5':
           console.log('switch workspace', e.key); break
       }

@@ -5,6 +5,12 @@ import StatusBar from './components/StatusBar'
 function App() {
   const [mode, setMode] = useState('TILE')
   const [layout, setLayout] = useState({ activeWorkspace: 1, workspaces: {} })
+  // Profile state is renderer-only for now: the UI lets you select/create
+  // profiles, but nothing is persisted and switching has no effect on tiles.
+  // Once wired through preload → main, these handlers will forward to a
+  // ProfileManager that swaps the active session snapshot in TileManager.
+  const [profiles, setProfiles] = useState([{ id: 'default', name: 'Default' }])
+  const [activeProfileId, setActiveProfileId] = useState('default')
 
   useEffect(() => {
     const unsubMode = window.mode.onChange((m) => setMode(m))
@@ -54,12 +60,31 @@ function App() {
     if (mode === 'TILE') window.mode.toggle()
   }
 
+  const handleSelectProfile = (id) => {
+    setActiveProfileId(id)
+  }
+
+  const handleCreateProfile = (name) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    const id = `${Date.now()}`
+    setProfiles((prev) => [...prev, { id, name: trimmed }])
+    setActiveProfileId(id)
+  }
+
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ flex: 1, overflow: 'hidden' }}>
         <TileGrid layout={layout} onTileClick={handleTileClick} />
       </div>
-      <StatusBar mode={mode} workspace={layout.activeWorkspace ?? 1} />
+      <StatusBar
+        mode={mode}
+        workspace={layout.activeWorkspace ?? 1}
+        profiles={profiles}
+        activeProfileId={activeProfileId}
+        onSelectProfile={handleSelectProfile}
+        onCreateProfile={handleCreateProfile}
+      />
     </div>
   )
 }

@@ -1,9 +1,50 @@
-function StatusBar({ mode, workspace }) {
+import { useEffect, useRef, useState } from 'react'
+
+function StatusBar({
+  mode,
+  workspace,
+  profiles = [],
+  activeProfileId,
+  onSelectProfile,
+  onCreateProfile
+}) {
   const isInsert = mode === 'INSERT'
   const modeStyle = isInsert
     ? { bg: 'rgba(255, 176, 64, 0.18)', text: '#ffcf80', border: 'rgba(255, 176, 64, 0.45)' }
     : { bg: 'rgba(94, 158, 255, 0.18)', text: '#9ec5ff', border: 'rgba(94, 158, 255, 0.45)' }
   const modeLabel = isInsert ? 'Insert' : 'Tile'
+
+  // Dropdown open/close and inline "new profile" name field are local UI state —
+  // no concept of them lives in App or main.
+  const [open, setOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [draftName, setDraftName] = useState('')
+  const wrapRef = useRef(null)
+
+  // Click anywhere outside the selector wrapper closes the dropdown. Using
+  // mousedown (not click) so it fires before any inner button's onClick, which
+  // matters if a tile click is what's closing us.
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false)
+        setCreating(false)
+        setDraftName('')
+      }
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
+  const activeProfile = profiles.find((p) => p.id === activeProfileId) ?? profiles[0]
+
+  const submitCreate = () => {
+    onCreateProfile?.(draftName)
+    setDraftName('')
+    setCreating(false)
+    setOpen(false)
+  }
 
   return (
     <div style={{
@@ -67,6 +108,179 @@ function StatusBar({ mode, workspace }) {
             </div>
           )
         })}
+      </div>
+
+      <div
+        ref={wrapRef}
+        style={{ marginLeft: 'auto', position: 'relative' }}
+      >
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'rgba(255, 255, 255, 0.06)',
+            border: '1px solid rgba(255, 255, 255, 0.18)',
+            borderRadius: '5px',
+            padding: '3px 8px',
+            color: '#f0f0f0',
+            fontFamily: 'monospace',
+            fontSize: '12px',
+            lineHeight: 1,
+            cursor: 'pointer',
+          }}
+        >
+          <span style={{
+            color: 'rgba(255, 255, 255, 0.45)',
+            fontSize: '10px',
+            letterSpacing: '0.6px',
+            textTransform: 'uppercase',
+          }}>
+            Profile
+          </span>
+          <span style={{ fontWeight: 600 }}>{activeProfile?.name ?? 'Default'}</span>
+          <span style={{
+            color: 'rgba(255, 255, 255, 0.5)',
+            fontSize: '9px',
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 120ms ease',
+          }}>
+            ▾
+          </span>
+        </button>
+
+        {open && (
+          <div
+            style={{
+              position: 'absolute',
+              right: 0,
+              bottom: 'calc(100% + 6px)',
+              minWidth: '180px',
+              background: 'rgba(28, 28, 28, 0.96)',
+              border: '1px solid rgba(255, 255, 255, 0.18)',
+              borderRadius: '8px',
+              padding: '4px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
+              backdropFilter: 'blur(20px) saturate(160%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '2px',
+              zIndex: 10,
+            }}
+          >
+            {profiles.map((p) => {
+              const active = p.id === activeProfileId
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    onSelectProfile?.(p.id)
+                    setOpen(false)
+                  }}
+                  style={{
+                    textAlign: 'left',
+                    background: active ? 'rgba(94, 158, 255, 0.18)' : 'transparent',
+                    border: '1px solid transparent',
+                    borderRadius: '5px',
+                    padding: '6px 8px',
+                    color: active ? '#9ec5ff' : '#f0f0f0',
+                    fontFamily: 'monospace',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '8px',
+                  }}
+                >
+                  <span>{p.name}</span>
+                  {active && <span style={{ fontSize: '11px' }}>✓</span>}
+                </button>
+              )
+            })}
+
+            <div style={{
+              height: '1px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              margin: '4px 4px',
+            }} />
+
+            {creating ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  submitCreate()
+                }}
+                style={{ display: 'flex', gap: '4px', padding: '2px' }}
+              >
+                <input
+                  autoFocus
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      setCreating(false)
+                      setDraftName('')
+                    }
+                  }}
+                  placeholder="Profile name"
+                  spellCheck={false}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    background: 'rgba(0, 0, 0, 0.35)',
+                    border: '1px solid rgba(255, 255, 255, 0.18)',
+                    borderRadius: '5px',
+                    color: '#f0f0f0',
+                    fontFamily: 'monospace',
+                    fontSize: '12px',
+                    padding: '4px 6px',
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={!draftName.trim()}
+                  style={{
+                    background: 'rgba(94, 158, 255, 0.18)',
+                    border: '1px solid rgba(94, 158, 255, 0.45)',
+                    borderRadius: '5px',
+                    color: '#9ec5ff',
+                    fontFamily: 'monospace',
+                    fontSize: '12px',
+                    padding: '0 8px',
+                    cursor: draftName.trim() ? 'pointer' : 'default',
+                    opacity: draftName.trim() ? 1 : 0.5,
+                  }}
+                >
+                  Add
+                </button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setCreating(true)}
+                style={{
+                  textAlign: 'left',
+                  background: 'transparent',
+                  border: '1px solid transparent',
+                  borderRadius: '5px',
+                  padding: '6px 8px',
+                  color: 'rgba(255, 255, 255, 0.65)',
+                  fontFamily: 'monospace',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                }}
+              >
+                + New profile…
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

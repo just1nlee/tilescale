@@ -6,11 +6,13 @@ import PtyManager from './PtyManager'
 import TileManager from './TileManager'
 import ModeManager from './ModeManager'
 import BrowserManager from './BrowserManager'
+import SessionManager from './SessionManager'
 
 const ptyManager = new PtyManager()
 const tileManager = new TileManager()
 const modeManager = new ModeManager()
 const browserManager = new BrowserManager()
+const sessionManager = new SessionManager()
 
 // Single exit point for layout updates: reconcile the native browser views
 // against the new layout, then push it to the renderer. Every IPC handler
@@ -247,6 +249,32 @@ app.whenReady().then(() => {
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+})
+
+// Shape the live state into the persisted session schema. We drop per-tile
+// bounds (they're recomputed from window size on restore) and keep only the
+// identity bits — id + type — plus mode and the active workspace. Browser url
+// and terminal cwd are layered on in later pieces.
+function buildSessionSnapshot() {
+  const layout = tileManager.getLayout()
+  const workspaces = {}
+  for (const [wsId, ws] of Object.entries(layout.workspaces)) {
+    workspaces[wsId] = {
+      tiles: ws.tiles.map((t) => ({ id: t.id, type: t.type }))
+    }
+  }
+  return {
+    mode: modeManager.currentMode,
+    activeWorkspace: layout.activeWorkspace,
+    workspaces
+  }
+}
+
+// Persist the session as the app shuts down. before-quit fires ahead of
+// window-all-closed (and thus ahead of ptyManager.killAll), so the shells are
+// still alive here when we later need to read their cwd.
+app.on('before-quit', () => {
+  sessionManager.save(buildSessionSnapshot())
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common

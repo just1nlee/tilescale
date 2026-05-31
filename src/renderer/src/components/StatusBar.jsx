@@ -1,5 +1,9 @@
 function StatusBar({ mode, workspace }) {
-  const label = mode === 'INSERT' ? '-- INSERT --' : `-- TILE -- [${workspace}]`
+  const isInsert = mode === 'INSERT'
+  const modeStyle = isInsert
+    ? { bg: 'rgba(255, 176, 64, 0.18)', text: '#ffcf80', border: 'rgba(255, 176, 64, 0.45)' }
+    : { bg: 'rgba(94, 158, 255, 0.18)', text: '#9ec5ff', border: 'rgba(94, 158, 255, 0.45)' }
+  const modeLabel = isInsert ? 'Insert' : 'Tile'
 
   return (
     <div style={{
@@ -20,16 +24,35 @@ function StatusBar({ mode, workspace }) {
         border: '1px solid rgba(255, 255, 255, 0.06)',
         borderRadius: '6px',
         color: '#f0f0f0',
-        textShadow: '0 1px 2px rgba(0, 0, 0, 0.6)',
         display: 'flex',
         alignItems: 'center',
-        paddingLeft: '12px',
+        gap: '10px',
+        padding: '0 12px',
         fontSize: '13px',
         fontFamily: 'monospace',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
       }}>
-        {label}
+        <span style={{
+          background: modeStyle.bg,
+          color: modeStyle.text,
+          border: `1px solid ${modeStyle.border}`,
+          borderRadius: '5px',
+          padding: '2px 8px',
+          fontSize: '11px',
+          fontWeight: 600,
+          letterSpacing: '0.6px',
+          textTransform: 'uppercase',
+          lineHeight: 1,
+        }}>
+          {modeLabel}
+        </span>
+        <span style={{
+          color: 'rgba(255, 255, 255, 0.55)',
+          fontSize: '12px',
+        }}>
+          workspace {workspace}
+        </span>
       </div>
     </div>
   )

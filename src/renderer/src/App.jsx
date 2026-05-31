@@ -11,6 +11,16 @@ function App() {
       window.__mode = m
     })
 
+    const handleKeyDown = (e) => {
+      if (e.shiftKey && e.key === 'Enter') {
+        e.preventDefault()
+        e.stopPropagation()
+        window.mode.toggle()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
   }, [])
 
   return (

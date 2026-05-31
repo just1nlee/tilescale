@@ -60,7 +60,7 @@ function TerminalTile({ id, isFocused }) {
     terminalRef.current = terminal
 
     terminal.attachCustomKeyEventHandler((e) => {
-      if (e.shiftKey && e.key === 'Enter') return false
+      if (e.shiftKey && e.key === ' ') return false
       return true
     })
 

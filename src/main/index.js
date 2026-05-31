@@ -111,7 +111,7 @@ function initializeSession() {
     // Always boot into TILE mode regardless of the persisted mode, so the
     // keyboard-driven shortcuts (B/T/Q/1–5/P) work the instant the app shows.
     // Restoring a saved INSERT mode silently swallowed every TILE command
-    // until the user discovered Shift+Enter. ModeManager already defaults to
+    // until the user discovered Shift+Space. ModeManager already defaults to
     // TILE, so we simply don't override it here.
     profileManager.loadFrom(saved)
     const active = profileManager.getSnapshot(profileManager.getActiveId())
@@ -156,9 +156,9 @@ function createWindow() {
   // A mode flip (from anywhere) re-decides who holds the keyboard.
   modeManager.onChange = () => syncBrowserFocus()
 
-  // Shift+Enter while a browser view had focus: React never saw it, so toggle
+  // Shift+Space while a browser view had focus: React never saw it, so toggle
   // the mode here. The onChange hook above then re-syncs focus.
-  browserManager.onShiftEnter = () => modeManager.toggle()
+  browserManager.onShiftSpace = () => modeManager.toggle()
 
   // The native view grabbed OS focus (it auto-focuses after load, or the user
   // clicked the page). In TILE mode that would silently break our keyboard

@@ -35,10 +35,10 @@ class BrowserManager {
     this.views = new Map() // tileId -> WebContentsView
     this.parent = null // the BrowserWindow whose contentView we attach to
     // Hooks wired up by main:
-    //   onShiftEnter()   — Shift+Enter pressed while a browser view had focus
+    //   onShiftSpace()   — Shift+Space pressed while a browser view had focus
     //   onViewFocus(id)  — the native view gained OS focus (click OR auto-focus)
     //   onViewClick(id)  — a real pointer press landed inside the live page
-    this.onShiftEnter = null
+    this.onShiftSpace = null
     this.onViewFocus = null
     this.onViewClick = null
     // Tile id whose React URL bar currently holds focus. While set, we must not
@@ -120,13 +120,13 @@ class BrowserManager {
     view.webContents.on('did-stop-loading', emit)
 
     // While this view holds OS focus the React page can't see keydowns, so
-    // Shift+Enter (toggle INSERT↔TILE) would be swallowed by the page. Catch it
+    // Shift+Space (toggle INSERT↔TILE) would be swallowed by the page. Catch it
     // here at the main level and hand it to ModeManager. Everything else passes
     // through to the page, honoring "INSERT passes all keystrokes to the tile".
     view.webContents.on('before-input-event', (event, input) => {
-      if (input.type === 'keyDown' && input.shift && input.key === 'Enter') {
+      if (input.type === 'keyDown' && input.shift && input.key === ' ') {
         event.preventDefault()
-        this.onShiftEnter?.()
+        this.onShiftSpace?.()
       }
     })
 

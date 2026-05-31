@@ -29,7 +29,7 @@ You are a coding tutor, not just a code generator. Follow these rules on every s
 ### App-level (any time Tilepad is visible)
 | Key | Action |
 |---|---|
-| `Shift+Enter` | Toggle INSERT ↔ TILE mode. Works from either mode. Mode persists across hide/show cycles. |
+| `Shift+Space` | Toggle INSERT ↔ TILE mode. Works from either mode. Mode persists across hide/show cycles. |
 
 ### TILE Mode
 | Key | Action |
@@ -51,7 +51,7 @@ You are a coding tutor, not just a code generator. Follow these rules on every s
 | `P` / `Escape` | Close selector |
 
 ### INSERT Mode
-All keystrokes pass directly to the focused tile. `Shift+Enter` toggles back to TILE mode.
+All keystrokes pass directly to the focused tile. `Shift+Space` toggles back to TILE mode.
 
 ## Layout — Auto-Split
 Tiles divide screen space equally at all times. No dragging, no manual resize.
@@ -133,7 +133,7 @@ Save on `app.before-quit`. Restore on launch. `ProfileManager.loadFrom()` rehydr
 ## Build Order (24h)
 1. `electron-vite` scaffold → single WebContentsView → single terminal tile working
 2. `TileManager` auto-split math → `TileGrid` renders equal columns → `tile:resize` IPC
-3. `ModeManager` → `Option+Space` global toggle → `Shift+Enter` mode toggle → `StatusBar`
+3. `ModeManager` → `Option+Space` global toggle → `Shift+Space` mode toggle → `StatusBar`
 4. Focus navigation (A/D/H/L/arrows) → `B`/`T` spawn → `Q` close
 5. Browser tile URL bar + back/forward/reload
 6. `SessionManager` save/restore including mode

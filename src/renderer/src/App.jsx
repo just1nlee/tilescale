@@ -46,7 +46,7 @@ function App() {
       // but in TILE mode keys there must still run TILE commands, not type a URL.
       if (e.target instanceof HTMLInputElement && e.target.dataset.profileNameInput) return
 
-      if (e.shiftKey && e.key === 'Enter') {
+      if (e.shiftKey && e.key === ' ') {
         e.preventDefault()
         e.stopPropagation()
         window.mode.toggle()

@@ -12,7 +12,7 @@ function StatusBar({ mode, workspace }) {
       background: 'rgba(20, 20, 20, 0.55)',
       border: '1px solid rgba(255, 255, 255, 0.18)',
       borderRadius: '10px',
-      margin: '8px',
+      margin: '0 8px 8px 8px',
       padding: '0 12px',
       boxSizing: 'border-box',
       color: '#f0f0f0',

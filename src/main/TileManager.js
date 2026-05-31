@@ -107,14 +107,23 @@ class TileManager {
     const slots = TileManager.LAYOUTS[count]
     const W = this.windowWidth
     const H = this.windowHeight
+    // Matches StatusBar's 8px margin. Outer edges inset by GAP, shared
+    // edges inset by GAP/2 from each side so the visible channel is also GAP.
+    const GAP = 8
+    const HALF = GAP / 2
 
     tiles.forEach((tile, i) => {
       const s = slots[i]
+      const left = s.x === 0 ? GAP : HALF
+      const top = s.y === 0 ? GAP : HALF
+      const right = s.x + s.w >= 1 ? GAP : HALF
+      const bottom = s.y + s.h >= 1 ? GAP : HALF
+
       tile.bounds = {
-        x: Math.round(s.x * W),
-        y: Math.round(s.y * H),
-        width: Math.round(s.w * W),
-        height: Math.round(s.h * H)
+        x: Math.round(s.x * W + left),
+        y: Math.round(s.y * H + top),
+        width: Math.round(s.w * W - left - right),
+        height: Math.round(s.h * H - top - bottom)
       }
     })
   }

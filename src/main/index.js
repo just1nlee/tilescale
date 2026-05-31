@@ -7,12 +7,14 @@ import TileManager from './TileManager'
 import ModeManager from './ModeManager'
 import BrowserManager from './BrowserManager'
 import SessionManager from './SessionManager'
+import ProfileManager from './ProfileManager'
 
 const ptyManager = new PtyManager()
 const tileManager = new TileManager()
 const modeManager = new ModeManager()
 const browserManager = new BrowserManager()
 const sessionManager = new SessionManager()
+const profileManager = new ProfileManager()
 
 // Single exit point for layout updates: reconcile the native browser views
 // against the new layout, then push it to the renderer. Every IPC handler
@@ -42,17 +44,74 @@ function syncBrowserFocus() {
   browserManager.focusActiveView({ mode: modeManager.currentMode, focusedId, focusedType })
 }
 
-// Seed the initial state. If a previous session was saved, rehydrate its mode
-// and tiles; otherwise start with one terminal tile so there's something to
-// show. Must run after the app is ready (SessionManager reads userData), so
-// it's called from whenReady — not at import time. Either way, no pty is
-// spawned here: each restored TerminalTile signals pty:ready on mount and main
-// spawns its shell then.
+// Push the profile list + active id to the renderer so the StatusBar selector
+// can render. Sent on initial window show and after every profile change.
+function broadcastProfiles(sender) {
+  sender.send('profile:state', {
+    profiles: profileManager.list(),
+    activeId: profileManager.getActiveId()
+  })
+}
+
+// Freeze the active profile's live tiles into the shape ProfileManager stores
+// and TileManager.restore consumes. Used both when switching profiles (to save
+// what we're leaving behind) and at quit time (to persist the active profile).
+// Browser urls are read live off the WebContentsView, not from the stale
+// layout, so the tile reopens on whatever page it currently shows. Terminal
+// cwd is not captured — restored shells start at $HOME, same as launch today.
+function captureActiveSnapshot() {
+  const layout = tileManager.getLayout()
+  const workspaces = {}
+  for (const [wsId, ws] of Object.entries(layout.workspaces)) {
+    workspaces[wsId] = {
+      tiles: ws.tiles.map((t) => {
+        const tile = { id: t.id, type: t.type }
+        if (t.type === 'browser') {
+          const url = browserManager.getUrl(t.id)
+          if (url) tile.url = url
+        }
+        return tile
+      })
+    }
+  }
+  return { activeWorkspace: layout.activeWorkspace, workspaces }
+}
+
+// Swap the entire tile world to a different profile. Mirrors launch-time
+// session restore: capture what's leaving, kill its ptys, restore the target's
+// snapshot into TileManager, then broadcastLayout — which makes BrowserManager
+// destroy outgoing WebContentsViews (they're no longer in any workspace) and
+// the renderer remount terminal tiles (each fires pty:ready, main spawns a
+// fresh shell). Inactive profiles intentionally hold no live processes; their
+// state lives only as snapshots inside ProfileManager.
+function switchProfile(sender, targetId) {
+  if (!profileManager.has(targetId)) return
+  if (targetId === profileManager.getActiveId()) return
+
+  profileManager.setSnapshot(profileManager.getActiveId(), captureActiveSnapshot())
+  ptyManager.killAll()
+
+  profileManager.setActive(targetId)
+  tileManager.restore(profileManager.getSnapshot(targetId))
+
+  broadcastLayout(sender)
+  broadcastProfiles(sender)
+}
+
+// Seed the initial state. If a previous session was saved, rehydrate mode +
+// profile list, then restore the active profile's tiles into TileManager;
+// otherwise start with one terminal tile in the default profile so there's
+// something to show. Must run after the app is ready (SessionManager reads
+// userData), so it's called from whenReady — not at import time. Either way,
+// no pty is spawned here: each restored TerminalTile signals pty:ready on
+// mount and main spawns its shell then.
 function initializeSession() {
   const saved = sessionManager.load()
   if (saved) {
     modeManager.setMode(saved.mode)
-    tileManager.restore(saved)
+    profileManager.loadFrom(saved)
+    const active = profileManager.getSnapshot(profileManager.getActiveId())
+    if (active) tileManager.restore(active)
   } else {
     tileManager.addTile('terminal')
   }
@@ -133,6 +192,7 @@ function createWindow() {
     // no listener and are silently dropped. Instead, the renderer signals
     // readiness via the pty:ready channel below.
     modeManager.attach(mainWindow.webContents)
+    broadcastProfiles(mainWindow.webContents)
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -207,6 +267,18 @@ app.whenReady().then(() => {
     broadcastLayout(event.sender)
   })
 
+  // Profile IPC — swap the whole tile world to another saved session.
+  ipcMain.on('profile:switch', (event, id) => switchProfile(event.sender, id))
+
+  // Add a new profile and jump straight into it (matches the StatusBar
+  // dropdown UX, which closes itself after "Add"). create() returns null if
+  // we're at the cap, in which case we ignore the request silently.
+  ipcMain.on('profile:create', (event, name) => {
+    const created = profileManager.create(name)
+    if (!created) return
+    switchProfile(event.sender, created.id)
+  })
+
   // Browser navigation IPC — routed straight to the native WebContentsView
   // that BrowserManager owns for the given tile id.
   ipcMain.on('browser:navigate', (_event, { id, url }) => browserManager.navigate(id, url))
@@ -266,31 +338,16 @@ app.whenReady().then(() => {
   })
 })
 
-// Shape the live state into the persisted session schema. We drop per-tile
-// bounds (they're recomputed from window size on restore) and keep only the
-// identity bits — id + type — plus mode and the active workspace. Browser url
-// and terminal cwd are layered on in later pieces.
+// Shape the live state into the persisted session form. We freeze the active
+// profile's current tiles into ProfileManager first (the other profiles already
+// have up-to-date snapshots — they're only ever touched via setSnapshot at
+// switch time) and then ask ProfileManager for its disk form, layering mode
+// on top as the only true app-global field.
 function buildSessionSnapshot() {
-  const layout = tileManager.getLayout()
-  const workspaces = {}
-  for (const [wsId, ws] of Object.entries(layout.workspaces)) {
-    workspaces[wsId] = {
-      tiles: ws.tiles.map((t) => {
-        const tile = { id: t.id, type: t.type }
-        // Read the view's live URL (not the stale layout one) so the tile
-        // reopens on whatever page it currently shows.
-        if (t.type === 'browser') {
-          const url = browserManager.getUrl(t.id)
-          if (url) tile.url = url
-        }
-        return tile
-      })
-    }
-  }
+  profileManager.setSnapshot(profileManager.getActiveId(), captureActiveSnapshot())
   return {
     mode: modeManager.currentMode,
-    activeWorkspace: layout.activeWorkspace,
-    workspaces
+    ...profileManager.toPersisted()
   }
 }
 

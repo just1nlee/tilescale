@@ -33,6 +33,10 @@ class TileManager {
     this._recalculate()
   }
 
+  getTile(id) {
+    return this.tiles.find((t) => t.id === id)
+  }
+
   setFocus(id) {
     this.focusedId = id
   }

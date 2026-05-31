@@ -21,7 +21,7 @@ function TerminalTile({ id, isFocused }) {
       theme: {
         background: 'rgba(0, 0, 0, 0)',
         foreground: '#f0f0f0',
-        cursor: '#ffcf80',
+        cursor: '#ffffff',
         cursorAccent: 'rgba(20, 20, 20, 0.55)',
         selectionBackground: 'rgba(255, 255, 255, 0.18)',
         selectionInactiveBackground: 'rgba(255, 255, 255, 0.08)',

@@ -47,6 +47,25 @@ const workspace = {
   switch: (id) => ipcRenderer.send('workspace:switch', id)
 }
 
+// Browser API — drives the native WebContentsView behind each browser tile:
+//   browser.navigate(id, url)   — load a URL / search query in the tile
+//   browser.back/forward(id)    — step through that tile's history
+//   browser.reload(id)          — reload the current page
+//   browser.requestState(id)    — ask main to (re)send current nav state
+//   browser.onState(cb)         — subscribe to nav-state pushes (url, history, loading)
+const browser = {
+  navigate: (id, url) => ipcRenderer.send('browser:navigate', { id, url }),
+  back: (id) => ipcRenderer.send('browser:back', id),
+  forward: (id) => ipcRenderer.send('browser:forward', id),
+  reload: (id) => ipcRenderer.send('browser:reload', id),
+  requestState: (id) => ipcRenderer.send('browser:request-state', id),
+  onState: (callback) => {
+    const handler = (_event, state) => callback(state)
+    ipcRenderer.on('browser:state', handler)
+    return () => ipcRenderer.removeListener('browser:state', handler)
+  }
+}
+
 // Mode API — exposes INSERT/TILE mode channels to the renderer:
 //   mode.toggle()       — ask main to flip the current mode
 //   mode.onChange(cb)   — subscribe to mode updates pushed from main
@@ -70,6 +89,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('tile', tile)
     contextBridge.exposeInMainWorld('workspace', workspace)
     contextBridge.exposeInMainWorld('mode', mode)
+    contextBridge.exposeInMainWorld('browser', browser)
   } catch (error) {
     console.error(error)
   }
@@ -80,4 +100,5 @@ if (process.contextIsolated) {
   window.tile = tile
   window.workspace = workspace
   window.mode = mode
+  window.browser = browser
 }

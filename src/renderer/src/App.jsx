@@ -20,6 +20,9 @@ function App() {
         return
       }
 
+      // Handle macOS quit shortcut
+      if (e.metaKey && e.key === 'q') return
+
       if (mode !== 'TILE') return
 
       e.preventDefault()

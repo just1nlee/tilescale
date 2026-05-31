@@ -100,6 +100,11 @@ app.whenReady().then(() => {
     event.sender.send('tile:layout', tileManager.getLayout())
   })
 
+  ipcMain.on('tile:focus-direction', (event, dir) => {
+    tileManager.focusDirection(dir)
+    event.sender.send('tile:layout', tileManager.getLayout())
+  })
+
   createWindow()
 
   // Global hotkey 

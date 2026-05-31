@@ -11,8 +11,37 @@ function TerminalTile({ id, isFocused }) {
   useEffect(() => {
     const terminal = new Terminal({
       cursorBlink: true,
+      cursorStyle: 'bar',
+      cursorWidth: 2,
       allowTransparency: true,
-      theme: { background: 'rgba(0, 0, 0, 0)' }
+      fontFamily: 'Menlo, Monaco, "SF Mono", "Courier New", monospace',
+      fontSize: 13,
+      lineHeight: 1.2,
+      letterSpacing: 0.3,
+      theme: {
+        background: 'rgba(0, 0, 0, 0)',
+        foreground: '#f0f0f0',
+        cursor: '#ffcf80',
+        cursorAccent: 'rgba(20, 20, 20, 0.55)',
+        selectionBackground: 'rgba(255, 255, 255, 0.18)',
+        selectionInactiveBackground: 'rgba(255, 255, 255, 0.08)',
+        black: '#1a1a1a',
+        red: '#ff8a8a',
+        green: '#a8e6a3',
+        yellow: '#ffcf80',
+        blue: '#9ec5ff',
+        magenta: '#d8a8ff',
+        cyan: '#9be7f0',
+        white: '#f0f0f0',
+        brightBlack: '#6b6b6b',
+        brightRed: '#ffa5a5',
+        brightGreen: '#c5f0bf',
+        brightYellow: '#ffe0a8',
+        brightBlue: '#bcd6ff',
+        brightMagenta: '#e6c4ff',
+        brightCyan: '#bff0f6',
+        brightWhite: '#ffffff',
+      }
     })
     const fitAddon = new FitAddon()
 

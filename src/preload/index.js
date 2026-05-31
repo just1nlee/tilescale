@@ -35,6 +35,12 @@ const tile = {
   focusDirection: (dir) => ipcRenderer.send('tile:focus-direction', dir)
 }
 
+// Workspace API — exposes workspace switching to the renderer:
+//   workspace.switch(id) — ask main to switch to workspace 1–5
+const workspace = {
+  switch: (id) => ipcRenderer.send('workspace:switch', id)
+}
+
 // Mode API — exposes INSERT/TILE mode channels to the renderer:
 //   mode.toggle()       — ask main to flip the current mode
 //   mode.onChange(cb)   — subscribe to mode updates pushed from main
@@ -56,6 +62,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('api', api)
     contextBridge.exposeInMainWorld('pty', pty)
     contextBridge.exposeInMainWorld('tile', tile)
+    contextBridge.exposeInMainWorld('workspace', workspace)
     contextBridge.exposeInMainWorld('mode', mode)
   } catch (error) {
     console.error(error)
@@ -65,5 +72,6 @@ if (process.contextIsolated) {
   window.api = api
   window.pty = pty
   window.tile = tile
+  window.workspace = workspace
   window.mode = mode
 }

@@ -19,6 +19,12 @@ function TileGrid({ layout, onTileClick }) {
   const workspaces = layout.workspaces ?? {}
   const activeWorkspace = layout.activeWorkspace
 
+  const asciiArt = String.raw` _____ ___ _     _____ ____   ____    _    _     _____ 
+|_   _|_ _| |   | ____/ ___| / ___|  / \  | |   | ____|
+  | |  | || |   |  _| \___ \| |     / _ \ | |   |  _|  
+  | |  | || |___| |___ ___) | |___ / ___ \| |___| |___ 
+  |_| |___|_____|_____|____/ \____/_/   \_\_____|_____|`
+
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
       {Object.entries(workspaces).map(([wsId, ws]) => {
@@ -32,6 +38,28 @@ function TileGrid({ layout, onTileClick }) {
               display: isActive ? 'block' : 'none'
             }}
           >
+            {isActive && ws.tiles.length === 0 && (
+              <pre
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  margin: 0,
+                  fontFamily:
+                    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                  fontSize: '16px',
+                  lineHeight: 1.2,
+                  whiteSpace: 'pre',
+                  color: 'rgb(255, 255, 255)',
+                  userSelect: 'none',
+                  pointerEvents: 'none',
+                  textShadow: '0 0 16px rgba(255, 255, 255, 0.12)'
+                }}
+              >
+                {asciiArt}
+              </pre>
+            )}
             {ws.tiles.map((tile) => {
               if (!tile.bounds) return null
               const focused = tile.id === ws.focusedId

@@ -275,7 +275,16 @@ function buildSessionSnapshot() {
   const workspaces = {}
   for (const [wsId, ws] of Object.entries(layout.workspaces)) {
     workspaces[wsId] = {
-      tiles: ws.tiles.map((t) => ({ id: t.id, type: t.type }))
+      tiles: ws.tiles.map((t) => {
+        const tile = { id: t.id, type: t.type }
+        // Read the view's live URL (not the stale layout one) so the tile
+        // reopens on whatever page it currently shows.
+        if (t.type === 'browser') {
+          const url = browserManager.getUrl(t.id)
+          if (url) tile.url = url
+        }
+        return tile
+      })
     }
   }
   return {

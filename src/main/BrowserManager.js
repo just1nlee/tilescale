@@ -51,9 +51,11 @@ class BrowserManager {
     this.parent = window
   }
 
-  // Lazily create a view for a browser tile and start loading the default URL.
-  // Idempotent so applyLayout() can call it unconditionally.
-  _create(id) {
+  // Lazily create a view for a browser tile and start loading its initial URL
+  // (a restored tile's saved page, or the default for a freshly spawned one).
+  // Idempotent so applyLayout() can call it unconditionally — the initialUrl is
+  // therefore only honored on the very first call for a given tile.
+  _create(id, initialUrl) {
     if (this.views.has(id)) return
 
     const view = new WebContentsView({
@@ -66,7 +68,7 @@ class BrowserManager {
     // addChildView stacks the view ABOVE the window's main page (React), which
     // is exactly what we want — the live site floats over the placeholder div.
     this.parent.contentView.addChildView(view)
-    view.webContents.loadURL(DEFAULT_URL)
+    view.webContents.loadURL(initialUrl || DEFAULT_URL)
 
     // Keep target=_blank / window.open navigations inside the tile instead of
     // spawning detached popups over our frameless always-on-top window.
@@ -127,6 +129,12 @@ class BrowserManager {
     })
   }
 
+  // Current page URL for a tile, for session persistence. Returns null when no
+  // view exists yet so the snapshot can simply omit the url.
+  getUrl(id) {
+    return this.views.get(id)?.webContents.getURL() || null
+  }
+
   navigate(id, input) {
     const view = this.views.get(id)
     const url = normalizeUrl(input)
@@ -179,7 +187,7 @@ class BrowserManager {
       const isActive = Number(wsId) === Number(activeWorkspace)
       for (const tile of ws.tiles) {
         if (tile.type !== 'browser') continue
-        this._create(tile.id)
+        this._create(tile.id, tile.url)
         const view = this.views.get(tile.id)
 
         if (!isActive || !tile.bounds) {

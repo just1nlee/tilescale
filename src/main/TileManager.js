@@ -45,7 +45,7 @@ class TileManager {
       const tiles = (saved[i]?.tiles ?? [])
         .filter((t) => t && (t.type === 'terminal' || t.type === 'browser') && t.id)
         .slice(0, 2)
-        .map((t) => ({ id: t.id, type: t.type, url: t.url, cwd: t.cwd, bounds: null }))
+        .map((t) => ({ id: t.id, type: t.type, url: t.url, bounds: null }))
       this.workspaces[i] = {
         tiles,
         focusedId: tiles.length ? tiles[tiles.length - 1].id : null
@@ -117,7 +117,7 @@ class TileManager {
     const workspaces = {}
     for (const [id, ws] of Object.entries(this.workspaces)) {
       workspaces[id] = {
-        tiles: ws.tiles.map((t) => ({ id: t.id, type: t.type, bounds: t.bounds })),
+        tiles: ws.tiles.map((t) => ({ id: t.id, type: t.type, url: t.url, bounds: t.bounds })),
         focusedId: ws.focusedId
       }
     }

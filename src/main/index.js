@@ -105,6 +105,11 @@ app.whenReady().then(() => {
     event.sender.send('tile:layout', tileManager.getLayout())
   })
 
+  ipcMain.on('workspace:switch', (event, id) => {
+    tileManager.switchWorkspace(id)
+    event.sender.send('tile:layout', tileManager.getLayout())
+  })
+
   createWindow()
 
   // Global hotkey 

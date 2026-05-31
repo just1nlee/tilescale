@@ -108,7 +108,11 @@ function switchProfile(sender, targetId) {
 function initializeSession() {
   const saved = sessionManager.load()
   if (saved) {
-    modeManager.setMode(saved.mode)
+    // Always boot into TILE mode regardless of the persisted mode, so the
+    // keyboard-driven shortcuts (B/T/Q/1–5/P) work the instant the app shows.
+    // Restoring a saved INSERT mode silently swallowed every TILE command
+    // until the user discovered Shift+Enter. ModeManager already defaults to
+    // TILE, so we simply don't override it here.
     profileManager.loadFrom(saved)
     const active = profileManager.getSnapshot(profileManager.getActiveId())
     if (active) tileManager.restore(active)

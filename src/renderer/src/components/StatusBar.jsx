@@ -18,7 +18,7 @@ function StatusBar({ mode, workspace }) {
       color: '#f0f0f0',
       display: 'flex',
       alignItems: 'center',
-      gap: '10px',
+      gap: '12px',
       fontSize: '13px',
       fontFamily: 'monospace',
       backdropFilter: 'blur(20px) saturate(160%)',
@@ -40,7 +40,6 @@ function StatusBar({ mode, workspace }) {
         {modeLabel}
       </span>
       <div style={{
-        marginLeft: 'auto',
         display: 'flex',
         gap: '2px',
         height: '100%',

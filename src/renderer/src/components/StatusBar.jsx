@@ -87,20 +87,25 @@ function StatusBar({
       }}>
         Tilescale
       </span>
-      <span style={{
-        background: modeStyle.bg,
-        color: modeStyle.text,
-        border: `1px solid ${modeStyle.border}`,
-        borderRadius: '5px',
-        padding: '2px 8px',
-        fontSize: '11px',
-        fontWeight: 600,
-        letterSpacing: '0.6px',
-        textTransform: 'uppercase',
-        lineHeight: 1,
-      }}>
-        {modeLabel}
-      </span>
+      {/* Fixed-width slot reserves the space for the longest label so the
+          workspace indicators never shift, while the pill inside hugs its own
+          text — TILE renders a narrower pill than INSERT. */}
+      <div style={{ width: '64px', flexShrink: 0, display: 'flex' }}>
+        <span style={{
+          background: modeStyle.bg,
+          color: modeStyle.text,
+          border: `1px solid ${modeStyle.border}`,
+          borderRadius: '5px',
+          padding: '2px 8px',
+          fontSize: '11px',
+          fontWeight: 600,
+          letterSpacing: '0.6px',
+          textTransform: 'uppercase',
+          lineHeight: 1,
+        }}>
+          {modeLabel}
+        </span>
+      </div>
       <div style={{
         display: 'flex',
         gap: '2px',

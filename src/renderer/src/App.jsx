@@ -39,7 +39,7 @@ function App() {
         case 'a': case 'h': case 'arrowleft': window.tile.focusDirection('a'); break
         case 'd': case 'l': case 'arrowright': window.tile.focusDirection('d'); break
         case '1': case '2': case '3': case '4': case '5':
-          console.log('switch workspace', e.key); break
+          window.workspace.switch(parseInt(e.key)); break
       }
     }
 
@@ -52,7 +52,7 @@ function App() {
       <div style={{ flex: 1, overflow: 'hidden' }}>
         <TileGrid layout={layout} />
       </div>
-      <StatusBar mode={mode} />
+      <StatusBar mode={mode} workspace={layout.activeWorkspace ?? 1} />
     </div>
   )
 }

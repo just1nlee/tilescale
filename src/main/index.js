@@ -348,7 +348,9 @@ app.whenReady().then(() => {
   // prints its banner + first prompt, which fixes the dropped-output race
   // at startup and on every new T-spawned tile.
   ipcMain.on('pty:ready', (event, id) => {
-    const tile = tileManager.getTile(id)
+    // findTile (not getTile) so a restored terminal in an inactive workspace
+    // — which mounts and signals readiness while hidden — still gets its shell.
+    const tile = tileManager.findTile(id)
     if (tile?.type !== 'terminal') return
 
     ptyManager.spawn(id, event.sender, () => {

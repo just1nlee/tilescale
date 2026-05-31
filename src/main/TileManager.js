@@ -67,18 +67,46 @@ class TileManager {
     return id
   }
 
-  // Removes a tile by id and shifts focus to the last remaining tile.
+  // Removes a tile by id and shifts focus to the last remaining tile. Searches
+  // ALL workspaces, not just the active one: the Q-key close path only ever
+  // targets the focused (active-workspace) tile, but a terminal's shell can
+  // exit in an inactive workspace — its pty:ready/onExit fires while hidden —
+  // and that dead tile must be collapsed from its own workspace, not whichever
+  // one happens to be active. Falls back gracefully if the id isn't found.
   removeTile(id) {
-    this._ws().tiles = this._ws().tiles.filter((t) => t.id !== id)
-    if (this._ws().focusedId === id) {
-      const tiles = this._ws().tiles
-      this._ws().focusedId = tiles.length > 0 ? tiles[tiles.length - 1].id : null
+    const ws = this._findWorkspace(id)
+    if (!ws) return
+    ws.tiles = ws.tiles.filter((t) => t.id !== id)
+    if (ws.focusedId === id) {
+      ws.focusedId = ws.tiles.length > 0 ? ws.tiles[ws.tiles.length - 1].id : null
     }
     this._recalculate()
   }
 
+  // The workspace slot whose tiles currently hold id, or null if none do.
+  _findWorkspace(id) {
+    for (let i = 1; i <= 5; i++) {
+      if (this.workspaces[i].tiles.some((t) => t.id === id)) return this.workspaces[i]
+    }
+    return null
+  }
+
   getTile(id) {
     return this._ws().tiles.find((t) => t.id === id)
+  }
+
+  // Find a tile by id across ALL workspaces, not just the active one. pty:ready
+  // can fire for a terminal in an inactive workspace — restore mounts every
+  // workspace's tiles at once — where getTile's active-only search would miss
+  // it and the shell would never spawn, leaving the restored tile permanently
+  // blank. Used by the pty:ready handler so background-workspace terminals come
+  // back to life on restore.
+  findTile(id) {
+    for (let i = 1; i <= 5; i++) {
+      const tile = this.workspaces[i].tiles.find((t) => t.id === id)
+      if (tile) return tile
+    }
+    return null
   }
 
   setFocus(id) {

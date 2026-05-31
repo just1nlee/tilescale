@@ -15,35 +15,53 @@ function TileGrid({ layout, onTileClick }) {
     return () => observer.disconnect()
   }, [])
 
+  const workspaces = layout.workspaces ?? {}
+  const activeWorkspace = layout.activeWorkspace
+
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
-      {layout.tiles.map((tile) => {
-        const focused = tile.id === layout.focusedId
+      {Object.entries(workspaces).map(([wsId, ws]) => {
+        const isActive = Number(wsId) === Number(activeWorkspace)
         return (
           <div
-            key={tile.id}
-            onClick={() => onTileClick?.(tile.id)}
+            key={wsId}
             style={{
               position: 'absolute',
-              left: tile.bounds.x,
-              top: tile.bounds.y,
-              width: tile.bounds.width,
-              height: tile.bounds.height,
-              boxSizing: 'border-box',
-              padding: '10px',
-              background: 'rgba(20, 20, 20, 0.55)',
-              border: `1px solid ${focused ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.08)'}`,
-              borderRadius: '10px',
-              overflow: 'hidden',
-              boxShadow: focused
-                ? '0 0 0 1px rgba(255, 255, 255, 0.25), 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 24px rgba(255, 255, 255, 0.08)'
-                : '0 4px 16px rgba(0, 0, 0, 0.25)',
-              transition: 'border-color 120ms ease, box-shadow 120ms ease',
+              inset: 0,
+              display: isActive ? 'block' : 'none'
             }}
           >
-            {tile.type === 'terminal' && (
-              <TerminalTile id={tile.id} isFocused={focused} />
-            )}
+            {ws.tiles.map((tile) => {
+              if (!tile.bounds) return null
+              const focused = tile.id === ws.focusedId
+              return (
+                <div
+                  key={tile.id}
+                  onClick={() => isActive && onTileClick?.(tile.id)}
+                  style={{
+                    position: 'absolute',
+                    left: tile.bounds.x,
+                    top: tile.bounds.y,
+                    width: tile.bounds.width,
+                    height: tile.bounds.height,
+                    boxSizing: 'border-box',
+                    padding: '10px',
+                    background: 'rgba(20, 20, 20, 0.55)',
+                    border: `1px solid ${focused ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.08)'}`,
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    boxShadow: focused
+                      ? '0 0 0 1px rgba(255, 255, 255, 0.25), 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 24px rgba(255, 255, 255, 0.08)'
+                      : '0 4px 16px rgba(0, 0, 0, 0.25)',
+                    transition: 'border-color 120ms ease, box-shadow 120ms ease',
+                  }}
+                >
+                  {tile.type === 'terminal' && (
+                    <TerminalTile id={tile.id} isFocused={isActive && focused} />
+                  )}
+                </div>
+              )
+            })}
           </div>
         )
       })}

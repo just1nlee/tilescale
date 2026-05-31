@@ -4,7 +4,7 @@ import StatusBar from './components/StatusBar'
 
 function App() {
   const [mode, setMode] = useState('TILE')
-  const [layout, setLayout] = useState({ tiles: [], focusedId: null })
+  const [layout, setLayout] = useState({ activeWorkspace: 1, workspaces: {} })
 
   useEffect(() => {
     const unsubMode = window.mode.onChange((m) => setMode(m))
@@ -32,10 +32,12 @@ function App() {
       e.preventDefault()
       e.stopPropagation()
 
+      const focusedId = layout.workspaces?.[layout.activeWorkspace]?.focusedId
+
       switch (e.key.toLowerCase()) {
         case 'b': window.tile.spawn('browser'); break
         case 't': window.tile.spawn('terminal'); break
-        case 'q': if (layout.focusedId) window.tile.close(layout.focusedId); break
+        case 'q': if (focusedId) window.tile.close(focusedId); break
         case 'a': case 'h': case 'arrowleft': window.tile.focusDirection('a'); break
         case 'd': case 'l': case 'arrowright': window.tile.focusDirection('d'); break
         case '1': case '2': case '3': case '4': case '5':
@@ -45,7 +47,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown, true)
     return () => window.removeEventListener('keydown', handleKeyDown, true)
-  }, [mode, layout.focusedId])
+  }, [mode, layout])
 
   const handleTileClick = (id) => {
     window.tile.focus(id)

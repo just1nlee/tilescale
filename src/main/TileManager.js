@@ -82,11 +82,20 @@ class TileManager {
   }
 
   // Returns the layout snapshot the renderer needs to draw tiles.
+  // Includes every workspace so the renderer can keep all tiles mounted
+  // (hidden workspaces just toggle display:none), preserving xterm scrollback
+  // and live pty:data subscriptions across workspace switches.
   getLayout() {
+    const workspaces = {}
+    for (const [id, ws] of Object.entries(this.workspaces)) {
+      workspaces[id] = {
+        tiles: ws.tiles.map((t) => ({ id: t.id, type: t.type, bounds: t.bounds })),
+        focusedId: ws.focusedId
+      }
+    }
     return {
-      tiles: this._ws().tiles.map((t) => ({ id: t.id, type: t.type, bounds: t.bounds })),
-      focusedId: this._ws().focusedId,
-      activeWorkspace: this.activeWorkspace
+      activeWorkspace: this.activeWorkspace,
+      workspaces
     }
   }
 

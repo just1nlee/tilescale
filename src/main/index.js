@@ -20,6 +20,24 @@ function broadcastLayout(sender) {
   const layout = tileManager.getLayout()
   browserManager.applyLayout(layout)
   sender.send('tile:layout', layout)
+  syncBrowserFocus()
+}
+
+// Read the active workspace's focused tile from the current layout.
+function getActiveFocus() {
+  const layout = tileManager.getLayout()
+  const ws = layout.workspaces[layout.activeWorkspace]
+  const focusedId = ws?.focusedId ?? null
+  const focusedType = ws?.tiles.find((t) => t.id === focusedId)?.type ?? null
+  return { focusedId, focusedType }
+}
+
+// Single place that decides who owns the keyboard: the React page (TILE mode,
+// or terminal tiles) or a native browser view (INSERT mode on a browser tile).
+// Called after every layout change and every mode toggle.
+function syncBrowserFocus() {
+  const { focusedId, focusedType } = getActiveFocus()
+  browserManager.focusActiveView({ mode: modeManager.currentMode, focusedId, focusedType })
 }
 
 // Start with one terminal tile so there's something to display on launch.
@@ -58,6 +76,21 @@ function createWindow() {
 
   // Give BrowserManager the window so it can parent native WebContentsViews.
   browserManager.attach(mainWindow)
+
+  // A mode flip (from anywhere) re-decides who holds the keyboard.
+  modeManager.onChange = () => syncBrowserFocus()
+
+  // Shift+Enter while a browser view had focus: React never saw it, so toggle
+  // the mode here. The onChange hook above then re-syncs focus.
+  browserManager.onShiftEnter = () => modeManager.toggle()
+
+  // The native view grabbed OS focus (it auto-focuses after load, or the user
+  // clicked the page). In TILE mode that would silently break our keyboard
+  // shortcuts, so bounce focus back to React. We deliberately do NOT enter
+  // INSERT here — otherwise a tile would jump into INSERT the moment it spawns.
+  browserManager.onViewFocus = () => {
+    if (modeManager.currentMode === 'TILE') browserManager.focusParent()
+  }
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -147,6 +180,11 @@ app.whenReady().then(() => {
   // BrowserTile asks for current state on mount so its URL bar is correct even
   // if it mounted after the page's first navigation already fired.
   ipcMain.on('browser:request-state', (_event, id) => browserManager.emitState(id))
+  // Renderer tells us when the URL bar is focused so we don't steal focus to
+  // the native page while the user is typing a URL.
+  ipcMain.on('browser:set-editing', (_event, { id, editing }) =>
+    browserManager.setEditing(id, editing)
+  )
 
   // Renderer-driven shell spawn. TerminalTile sends this from inside its
   // useEffect, immediately after registering the pty:data listener. By
@@ -181,6 +219,7 @@ app.whenReady().then(() => {
     } else {
       mainWindow.show()
       mainWindow.focus()
+      syncBrowserFocus()
     }
   })
 

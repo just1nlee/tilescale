@@ -4,6 +4,8 @@ export default class ModeManager {
   constructor() {
     this.currentMode = 'TILE'
     this._webContents = null
+    // Optional hook so main can re-sync native focus when the mode flips.
+    this.onChange = null
 
     ipcMain.on('mode:toggle', () => this.toggle())
   }
@@ -18,5 +20,6 @@ export default class ModeManager {
   toggle() {
     this.currentMode = this.currentMode === 'TILE' ? 'INSERT' : 'TILE'
     this._webContents?.send('mode:changed', this.currentMode)
+    this.onChange?.(this.currentMode)
   }
 }

@@ -50,6 +50,7 @@ function BrowserTile({ id }) {
   const submit = (e) => {
     e.preventDefault()
     editingRef.current = false
+    window.browser?.setEditing(id, false)
     window.browser?.navigate(id, url)
   }
 
@@ -88,8 +89,14 @@ function BrowserTile({ id }) {
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            onFocus={() => (editingRef.current = true)}
-            onBlur={() => (editingRef.current = false)}
+            onFocus={() => {
+              editingRef.current = true
+              window.browser?.setEditing(id, true)
+            }}
+            onBlur={() => {
+              editingRef.current = false
+              window.browser?.setEditing(id, false)
+            }}
             placeholder="Enter URL"
             spellCheck={false}
             style={{

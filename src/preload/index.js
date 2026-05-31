@@ -59,6 +59,9 @@ const browser = {
   forward: (id) => ipcRenderer.send('browser:forward', id),
   reload: (id) => ipcRenderer.send('browser:reload', id),
   requestState: (id) => ipcRenderer.send('browser:request-state', id),
+  // Tell main when the URL bar gains/loses focus so it won't steal focus back
+  // to the native page mid-type.
+  setEditing: (id, editing) => ipcRenderer.send('browser:set-editing', { id, editing }),
   onState: (callback) => {
     const handler = (_event, state) => callback(state)
     ipcRenderer.on('browser:state', handler)

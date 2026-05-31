@@ -34,6 +34,14 @@ class BrowserManager {
   constructor() {
     this.views = new Map() // tileId -> WebContentsView
     this.parent = null // the BrowserWindow whose contentView we attach to
+    // Hooks wired up by main:
+    //   onShiftEnter()   — Shift+Enter pressed while a browser view had focus
+    //   onViewFocus(id)  — the user clicked into a browser tile's page
+    this.onShiftEnter = null
+    this.onViewFocus = null
+    // Tile id whose React URL bar currently holds focus. While set, we must not
+    // steal OS focus to that tile's native page or the user can't type a URL.
+    this.editingId = null
   }
 
   // Call once the BrowserWindow exists so we have something to parent views to.
@@ -73,6 +81,22 @@ class BrowserManager {
     view.webContents.on('did-navigate-in-page', emit)
     view.webContents.on('did-start-loading', emit)
     view.webContents.on('did-stop-loading', emit)
+
+    // While this view holds OS focus the React page can't see keydowns, so
+    // Shift+Enter (toggle INSERT↔TILE) would be swallowed by the page. Catch it
+    // here at the main level and hand it to ModeManager. Everything else passes
+    // through to the page, honoring "INSERT passes all keystrokes to the tile".
+    view.webContents.on('before-input-event', (event, input) => {
+      if (input.type === 'keyDown' && input.shift && input.key === 'Enter') {
+        event.preventDefault()
+        this.onShiftEnter?.()
+      }
+    })
+
+    // Clicking the live page focuses the native view, not React's onClick (the
+    // view floats above the placeholder). Tell main so it can mark this tile
+    // focused and drop into INSERT — mirroring a terminal-tile click.
+    view.webContents.on('focus', () => this.onViewFocus?.(id))
 
     this.views.set(id, view)
   }
@@ -162,6 +186,39 @@ class BrowserManager {
         })
       }
     }
+  }
+
+  // The renderer reports when a tile's URL bar gains/loses focus so we know not
+  // to fight it for OS focus.
+  setEditing(id, editing) {
+    if (editing) this.editingId = id
+    else if (this.editingId === id) this.editingId = null
+  }
+
+  // Hand OS keyboard focus back to the window's React page.
+  focusParent() {
+    if (this.parent && !this.parent.webContents.isFocused()) this.parent.webContents.focus()
+  }
+
+  // Enforce the focus model: the native browser view gets OS keyboard focus
+  // ONLY when we're in INSERT mode on a focused browser tile AND its URL bar
+  // isn't being edited. In every other case focus belongs to the React page,
+  // so the URL bar stays typable and our TILE-mode shortcuts (WASD/B/T/Q/1–5)
+  // and Shift+Enter keep working. isFocused() guards keep it idempotent.
+  focusActiveView({ mode, focusedId, focusedType }) {
+    if (!this.parent) return
+
+    if (mode === 'INSERT' && focusedType === 'browser') {
+      // URL bar holds focus — leave it so the user can type a URL.
+      if (this.editingId === focusedId) return
+      const view = this.views.get(focusedId)
+      if (view && !view.webContents.isFocused()) view.webContents.focus()
+      return
+    }
+
+    // React owns the keyboard now; clear any stale URL-bar editing flag.
+    this.editingId = null
+    this.focusParent()
   }
 }
 

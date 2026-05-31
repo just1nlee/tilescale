@@ -6,7 +6,11 @@ function StatusBar({
   profiles = [],
   activeProfileId,
   onSelectProfile,
-  onCreateProfile
+  onCreateProfile,
+  open = false,
+  onOpenChange,
+  highlightedId,
+  onHighlightChange
 }) {
   const isInsert = mode === 'INSERT'
   const modeStyle = isInsert
@@ -14,9 +18,10 @@ function StatusBar({
     : { bg: 'rgba(94, 158, 255, 0.18)', text: '#9ec5ff', border: 'rgba(94, 158, 255, 0.45)' }
   const modeLabel = isInsert ? 'Insert' : 'Tile'
 
-  // Dropdown open/close and inline "new profile" name field are local UI state —
-  // no concept of them lives in App or main.
-  const [open, setOpen] = useState(false)
+  // Dropdown open/close and the keyboard highlight cursor are CONTROLLED by App
+  // (open via the P key, highlight via W/S/J/K) because App captures all
+  // keydowns at the window level in TILE mode — the dropdown can't listen for
+  // keys itself. The inline "new profile" name field stays local UI state.
   const [creating, setCreating] = useState(false)
   const [draftName, setDraftName] = useState('')
   const wrapRef = useRef(null)
@@ -28,14 +33,14 @@ function StatusBar({
     if (!open) return
     const onDown = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) {
-        setOpen(false)
+        onOpenChange?.(false)
         setCreating(false)
         setDraftName('')
       }
     }
     document.addEventListener('mousedown', onDown)
     return () => document.removeEventListener('mousedown', onDown)
-  }, [open])
+  }, [open, onOpenChange])
 
   const activeProfile = profiles.find((p) => p.id === activeProfileId) ?? profiles[0]
 
@@ -43,7 +48,7 @@ function StatusBar({
     onCreateProfile?.(draftName)
     setDraftName('')
     setCreating(false)
-    setOpen(false)
+    onOpenChange?.(false)
   }
 
   return (
@@ -142,7 +147,7 @@ function StatusBar({
       >
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => onOpenChange?.(!open)}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -199,18 +204,26 @@ function StatusBar({
           >
             {profiles.map((p) => {
               const active = p.id === activeProfileId
+              const highlighted = p.id === highlightedId
               return (
                 <button
                   key={p.id}
                   type="button"
+                  onMouseEnter={() => onHighlightChange?.(p.id)}
                   onClick={() => {
                     onSelectProfile?.(p.id)
-                    setOpen(false)
+                    onOpenChange?.(false)
                   }}
                   style={{
                     textAlign: 'left',
-                    background: active ? 'rgba(94, 158, 255, 0.18)' : 'transparent',
-                    border: '1px solid transparent',
+                    background: active
+                      ? 'rgba(94, 158, 255, 0.18)'
+                      : highlighted
+                        ? 'rgba(255, 255, 255, 0.08)'
+                        : 'transparent',
+                    border: highlighted
+                      ? '1px solid rgba(255, 255, 255, 0.3)'
+                      : '1px solid transparent',
                     borderRadius: '5px',
                     padding: '6px 8px',
                     color: active ? '#9ec5ff' : '#f0f0f0',
@@ -245,6 +258,7 @@ function StatusBar({
               >
                 <input
                   autoFocus
+                  data-profile-name-input="true"
                   value={draftName}
                   onChange={(e) => setDraftName(e.target.value)}
                   onKeyDown={(e) => {

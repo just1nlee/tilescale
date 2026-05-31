@@ -12,6 +12,11 @@ function App() {
   // ProfileManager via window.profile.onState.
   const [profiles, setProfiles] = useState([{ id: 'default', name: 'Default' }])
   const [activeProfileId, setActiveProfileId] = useState('default')
+  // Profile selector UI state lives here (not in StatusBar) because the keydown
+  // handler below — which captures keys at the window level in TILE mode — is
+  // what drives P (open/close) and W/S·J/K (move the highlight cursor).
+  const [selectorOpen, setSelectorOpen] = useState(false)
+  const [highlightedId, setHighlightedId] = useState(null)
 
   useEffect(() => {
     const unsubMode = window.mode.onChange((m) => setMode(m))
@@ -29,6 +34,12 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Let the "new profile" name field receive keys normally — without this,
+      // TILE-mode preventDefault would swallow every character. Scoped to that
+      // one field via its data attribute: the browser URL bar is also an input,
+      // but in TILE mode keys there must still run TILE commands, not type a URL.
+      if (e.target instanceof HTMLInputElement && e.target.dataset.profileNameInput) return
+
       if (e.shiftKey && e.key === 'Enter') {
         e.preventDefault()
         e.stopPropagation()
@@ -41,12 +52,51 @@ function App() {
 
       if (mode !== 'TILE') return
 
+      const key = e.key.toLowerCase()
+
+      // While the profile selector is open it owns navigation: W/S·J/K (and
+      // arrows) move the highlight, Enter commits the switch, P/Escape close.
+      // We highlight-then-commit rather than switching on each keypress because
+      // a switch tears down ptys and respawns shells — too heavy per keystroke.
+      if (selectorOpen) {
+        e.preventDefault()
+        e.stopPropagation()
+        const len = profiles.length
+        const idx = Math.max(0, profiles.findIndex((p) => p.id === highlightedId))
+        switch (key) {
+          case 'p':
+          case 'escape':
+            setSelectorOpen(false)
+            break
+          case 'w': case 'k': case 'arrowup':
+            setHighlightedId(profiles[(idx - 1 + len) % len].id)
+            break
+          case 's': case 'j': case 'arrowdown':
+            setHighlightedId(profiles[(idx + 1) % len].id)
+            break
+          case 'enter':
+            if (highlightedId) window.profile.switch(highlightedId)
+            setSelectorOpen(false)
+            break
+        }
+        return
+      }
+
+      // P opens the selector, seeding the highlight on the active profile.
+      if (key === 'p') {
+        e.preventDefault()
+        e.stopPropagation()
+        setHighlightedId(activeProfileId)
+        setSelectorOpen(true)
+        return
+      }
+
       e.preventDefault()
       e.stopPropagation()
 
       const focusedId = layout.workspaces?.[layout.activeWorkspace]?.focusedId
 
-      switch (e.key.toLowerCase()) {
+      switch (key) {
         case 'b': window.tile.spawn('browser'); break
         case 't': window.tile.spawn('terminal'); break
         case 'q': if (focusedId) window.tile.close(focusedId); break
@@ -59,7 +109,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown, true)
     return () => window.removeEventListener('keydown', handleKeyDown, true)
-  }, [mode, layout])
+  }, [mode, layout, profiles, activeProfileId, selectorOpen, highlightedId])
 
   const handleTileClick = (id) => {
     window.tile.focus(id)
@@ -91,6 +141,10 @@ function App() {
         activeProfileId={activeProfileId}
         onSelectProfile={handleSelectProfile}
         onCreateProfile={handleCreateProfile}
+        open={selectorOpen}
+        onOpenChange={setSelectorOpen}
+        highlightedId={highlightedId}
+        onHighlightChange={setHighlightedId}
       />
     </div>
   )

@@ -47,10 +47,15 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown, true)
   }, [mode, layout.focusedId])
 
+  const handleTileClick = (id) => {
+    window.tile.focus(id)
+    if (mode === 'TILE') window.mode.toggle()
+  }
+
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ flex: 1, overflow: 'hidden' }}>
-        <TileGrid layout={layout} />
+        <TileGrid layout={layout} onTileClick={handleTileClick} />
       </div>
       <StatusBar mode={mode} workspace={layout.activeWorkspace ?? 1} />
     </div>

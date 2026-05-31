@@ -273,7 +273,7 @@ function StatusBar({
                     <input
                       autoFocus
                       data-profile-name-input="true"
-                      maxLength={16}
+                      maxLength={12}
                       value={renameDraft}
                       onChange={(e) => setRenameDraft(e.target.value)}
                       onKeyDown={(e) => {

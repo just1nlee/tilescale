@@ -8,8 +8,8 @@ const api = {}
 //   pty.onData(cb)  — subscribe to shell output
 //   pty.write(data) — send a keystroke to the shell
 const pty = {
-  onData: (callback) => ipcRenderer.on('pty:data', (_event, data) => callback(data)),
-  write: (data) => ipcRenderer.send('pty:write', data)
+  onData: (callback) => ipcRenderer.on('pty:data', (_event, { id, data }) => callback(id, data)),
+  write: (id, data) => ipcRenderer.send('pty:write', { id, data })
 }
 
 // Tile API — exposes layout channels to the renderer:

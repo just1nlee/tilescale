@@ -8,7 +8,11 @@ const api = {}
 //   pty.onData(cb)  — subscribe to shell output
 //   pty.write(data) — send a keystroke to the shell
 const pty = {
-  onData: (callback) => ipcRenderer.on('pty:data', (_event, { id, data }) => callback(id, data)),
+  onData: (callback) => {
+    const listener = (_event, { id, data }) => callback(id, data)
+    ipcRenderer.on('pty:data', listener)
+    return () => ipcRenderer.removeListener('pty:data', listener)
+  },
   write: (id, data) => ipcRenderer.send('pty:write', { id, data })
 }
 

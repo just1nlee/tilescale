@@ -9,7 +9,11 @@ function TerminalTile({ id, isFocused }) {
   const terminalRef = useRef(null)
 
   useEffect(() => {
-    const terminal = new Terminal({ cursorBlink: true })
+    const terminal = new Terminal({
+      cursorBlink: true,
+      allowTransparency: true,
+      theme: { background: 'rgba(0, 0, 0, 0)' }
+    })
     const fitAddon = new FitAddon()
 
     terminal.loadAddon(fitAddon)
@@ -51,7 +55,7 @@ function TerminalTile({ id, isFocused }) {
   return (
     <div
       ref={containerRef}
-      style={{ width: '100%', height: '100%', backgroundColor: '#1e1e1e' }}
+      style={{ width: '100%', height: '100%' }}
     />
   )
 }

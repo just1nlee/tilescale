@@ -29,7 +29,7 @@ You are a coding tutor, not just a code generator. Follow these rules on every s
 ### App-level (any time Tilepad is visible)
 | Key | Action |
 |---|---|
-| `Shift+Space` | Toggle INSERT ↔ TILE mode. Mode persists across hide/show cycles. |
+| `Shift+Enter` | Toggle INSERT ↔ TILE mode. Works from either mode. Mode persists across hide/show cycles. |
 
 ### TILE Mode
 | Key | Action |
@@ -41,7 +41,7 @@ You are a coding tutor, not just a code generator. Follow these rules on every s
 | `1`–`5` | Switch to workspace 1–5 |
 
 ### INSERT Mode
-All keystrokes pass directly to the focused tile. `Shift+Enter` returns to TILE mode.
+All keystrokes pass directly to the focused tile. `Shift+Enter` toggles back to TILE mode.
 
 ## Layout — Auto-Split
 Tiles divide screen space equally at all times. No dragging, no manual resize.
@@ -66,7 +66,7 @@ Main Process (Node.js)
 ├── TileManager     — workspace map, tile array per workspace, auto-split bounds, focus tracking
 ├── PtyManager      — node-pty spawn/kill/IO per terminal tile
 ├── SessionManager  — save/restore session JSON and current mode
-├── ModeManager     — INSERT vs TILE state, Shift+Space handler, globalShortcut
+├── ModeManager     — INSERT vs TILE state, Shift+Enter handler, globalShortcut
 └── ipc/            — all renderer↔main communication (pattern: domain:action)
 
 Renderer Process (React + Vite)
@@ -100,7 +100,7 @@ Save on `app.before-quit`. Restore on launch. Tiles re-split equally on restore.
 ## Build Order (24h)
 1. `electron-vite` scaffold → single WebContentsView → single terminal tile working
 2. `TileManager` auto-split math → `TileGrid` renders equal columns → `tile:resize` IPC
-3. `ModeManager` → `Option+Space` global toggle → `Shift+Space` mode switch → `StatusBar`
+3. `ModeManager` → `Option+Space` global toggle → `Shift+Enter` mode toggle → `StatusBar`
 4. WASD focus navigation → `B`/`T` spawn → `Q` close
 5. Browser tile URL bar + back/forward/reload
 6. `SessionManager` save/restore including mode

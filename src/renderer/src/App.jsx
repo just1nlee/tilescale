@@ -5,19 +5,25 @@ import StatusBar from './components/StatusBar'
 function App() {
   const [mode, setMode] = useState('TILE')
   const [layout, setLayout] = useState({ activeWorkspace: 1, workspaces: {} })
-  // Profile state is renderer-only for now: the UI lets you select/create
-  // profiles, but nothing is persisted and switching has no effect on tiles.
-  // Once wired through preload → main, these handlers will forward to a
-  // ProfileManager that swaps the active session snapshot in TileManager.
+  // Profile state is now owned by main; we mirror its profile:state pushes
+  // into React. The Default seed is just a placeholder for the tick between
+  // first mount and main's initial push, so the StatusBar selector renders
+  // something rather than collapsing. After that, every update comes from
+  // ProfileManager via window.profile.onState.
   const [profiles, setProfiles] = useState([{ id: 'default', name: 'Default' }])
   const [activeProfileId, setActiveProfileId] = useState('default')
 
   useEffect(() => {
     const unsubMode = window.mode.onChange((m) => setMode(m))
     const unsubLayout = window.tile.onLayout((l) => setLayout(l))
+    const unsubProfile = window.profile.onState((state) => {
+      setProfiles(state.profiles)
+      setActiveProfileId(state.activeId)
+    })
     return () => {
       unsubMode()
       unsubLayout()
+      unsubProfile()
     }
   }, [])
 
@@ -60,16 +66,17 @@ function App() {
     if (mode === 'TILE') window.mode.toggle()
   }
 
+  // Both delegate to main and never mutate local state directly — the
+  // profile:state push that follows the switch/create updates React. Matches
+  // how window.mode.toggle() drives mode changes through main.
   const handleSelectProfile = (id) => {
-    setActiveProfileId(id)
+    window.profile.switch(id)
   }
 
   const handleCreateProfile = (name) => {
     const trimmed = name.trim()
     if (!trimmed) return
-    const id = `${Date.now()}`
-    setProfiles((prev) => [...prev, { id, name: trimmed }])
-    setActiveProfileId(id)
+    window.profile.create(trimmed)
   }
 
   return (

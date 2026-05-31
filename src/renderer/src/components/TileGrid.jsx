@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import TerminalTile from './TerminalTile'
 
-function TileGrid({ layout }) {
+function TileGrid({ layout, onTileClick }) {
   const containerRef = useRef(null)
 
   useEffect(() => {
@@ -20,6 +20,7 @@ function TileGrid({ layout }) {
       {layout.tiles.map((tile) => (
         <div
           key={tile.id}
+          onClick={() => onTileClick?.(tile.id)}
           style={{
             position: 'absolute',
             left: tile.bounds.x,

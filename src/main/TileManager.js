@@ -29,6 +29,34 @@ class TileManager {
     this._recalculate()
   }
 
+  // Rebuild the workspace map from a persisted session snapshot. We trust only
+  // the identity fields (id + type), re-derive bounds via _recalculate, and
+  // defensively clamp to the same rules new tiles obey: known types only, max
+  // 2 per workspace. focusedId isn't persisted, so we focus the last restored
+  // tile in each workspace (matching how spawning leaves focus). Bad/missing
+  // data falls back to sane defaults rather than throwing.
+  restore(snapshot) {
+    for (let i = 1; i <= 5; i++) {
+      this.workspaces[i] = { tiles: [], focusedId: null }
+    }
+
+    const saved = snapshot?.workspaces ?? {}
+    for (let i = 1; i <= 5; i++) {
+      const tiles = (saved[i]?.tiles ?? [])
+        .filter((t) => t && (t.type === 'terminal' || t.type === 'browser') && t.id)
+        .slice(0, 2)
+        .map((t) => ({ id: t.id, type: t.type, url: t.url, cwd: t.cwd, bounds: null }))
+      this.workspaces[i] = {
+        tiles,
+        focusedId: tiles.length ? tiles[tiles.length - 1].id : null
+      }
+    }
+
+    const ws = snapshot?.activeWorkspace
+    this.activeWorkspace = ws >= 1 && ws <= 5 ? ws : 1
+    this._recalculate()
+  }
+
   // Adds a tile of the given type, focuses it, returns its id. Max 2 tiles.
   addTile(type) {
     if (this._ws().tiles.length >= 2) return null

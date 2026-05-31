@@ -42,10 +42,21 @@ function syncBrowserFocus() {
   browserManager.focusActiveView({ mode: modeManager.currentMode, focusedId, focusedType })
 }
 
-// Start with one terminal tile so there's something to display on launch.
-// Its pty is not spawned here — TerminalTile signals pty:ready once its
-// pty:data listener is wired, and main spawns the shell then.
-tileManager.addTile('terminal')
+// Seed the initial state. If a previous session was saved, rehydrate its mode
+// and tiles; otherwise start with one terminal tile so there's something to
+// show. Must run after the app is ready (SessionManager reads userData), so
+// it's called from whenReady — not at import time. Either way, no pty is
+// spawned here: each restored TerminalTile signals pty:ready on mount and main
+// spawns its shell then.
+function initializeSession() {
+  const saved = sessionManager.load()
+  if (saved) {
+    modeManager.setMode(saved.mode)
+    tileManager.restore(saved)
+  } else {
+    tileManager.addTile('terminal')
+  }
+}
 
 let mainWindow = null
 
@@ -144,6 +155,10 @@ function createWindow() {
 app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
+
+  // Rehydrate (or seed) tile + mode state before the window loads, so the very
+  // first layout the renderer receives already reflects the restored session.
+  initializeSession()
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.

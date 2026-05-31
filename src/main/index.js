@@ -88,8 +88,16 @@ function createWindow() {
   // clicked the page). In TILE mode that would silently break our keyboard
   // shortcuts, so bounce focus back to React. We deliberately do NOT enter
   // INSERT here — otherwise a tile would jump into INSERT the moment it spawns.
-  browserManager.onViewFocus = () => {
-    if (modeManager.currentMode === 'TILE') browserManager.focusParent()
+  // In INSERT mode the click is a deliberate switch to this tile, so update
+  // TileManager's focusedId and rebroadcast so the React glow border tracks it;
+  // without this, Q and WASD would still act on the previously focused tile.
+  browserManager.onViewFocus = (id) => {
+    if (modeManager.currentMode === 'TILE') {
+      browserManager.focusParent()
+    } else {
+      tileManager.setFocus(id)
+      broadcastLayout(mainWindow.webContents)
+    }
   }
 
   mainWindow.on('ready-to-show', () => {

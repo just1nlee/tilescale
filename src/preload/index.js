@@ -15,9 +15,15 @@ const pty = {
 // Tile API — exposes layout channels to the renderer:
 //   tile.resize(w, h)   — report real window pixel dimensions to main
 //   tile.onLayout(cb)   — subscribe to layout updates pushed from main
+//   tile.spawn(type)    — ask main to create a new tile ('terminal' | 'browser')
+//   tile.close(id)      — ask main to remove a tile by id
+//   tile.focus(id)      — tell main which tile is now focused
 const tile = {
   resize: (width, height) => ipcRenderer.send('tile:resize', { width, height }),
-  onLayout: (callback) => ipcRenderer.on('tile:layout', (_event, layout) => callback(layout))
+  onLayout: (callback) => ipcRenderer.on('tile:layout', (_event, layout) => callback(layout)),
+  spawn: (type) => ipcRenderer.send('tile:spawn', type),
+  close: (id) => ipcRenderer.send('tile:close', id),
+  focus: (id) => ipcRenderer.send('tile:focus', id)
 }
 
 // Mode API — exposes INSERT/TILE mode channels to the renderer:

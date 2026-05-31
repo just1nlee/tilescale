@@ -353,7 +353,7 @@ app.whenReady().then(() => {
 
   createWindow()
 
-  // Global hotkey 
+  // Global hotkey
   globalShortcut.register('Option+Space', () => {
     if (mainWindow.isVisible()) {
       // app.hide() tells macOS to return focus to the previously active app.

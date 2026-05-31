@@ -24,7 +24,11 @@ export default [
     },
     rules: {
       ...eslintPluginReactHooks.configs.recommended.rules,
-      ...eslintPluginReactRefresh.configs.vite.rules
+      ...eslintPluginReactRefresh.configs.vite.rules,
+      // This is a plain-JS React codebase that deliberately doesn't ship
+      // runtime PropTypes; props are documented via comments instead. Turn the
+      // rule off rather than annotating every component with PropTypes noise.
+      'react/prop-types': 'off'
     }
   },
   eslintConfigPrettier

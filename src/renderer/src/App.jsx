@@ -68,16 +68,23 @@ function App() {
         e.preventDefault()
         e.stopPropagation()
         const len = profiles.length
-        const idx = Math.max(0, profiles.findIndex((p) => p.id === highlightedId))
+        const idx = Math.max(
+          0,
+          profiles.findIndex((p) => p.id === highlightedId)
+        )
         switch (key) {
           case 'p':
           case 'escape':
             setSelectorOpen(false)
             break
-          case 'w': case 'k': case 'arrowup':
+          case 'w':
+          case 'k':
+          case 'arrowup':
             setHighlightedId(profiles[(idx - 1 + len) % len].id)
             break
-          case 's': case 'j': case 'arrowdown':
+          case 's':
+          case 'j':
+          case 'arrowdown':
             setHighlightedId(profiles[(idx + 1) % len].id)
             break
           case 'enter':
@@ -103,13 +110,32 @@ function App() {
       const focusedId = layout.workspaces?.[layout.activeWorkspace]?.focusedId
 
       switch (key) {
-        case 'b': window.tile.spawn('browser'); break
-        case 't': window.tile.spawn('terminal'); break
-        case 'q': if (focusedId) window.tile.close(focusedId); break
-        case 'a': case 'h': case 'arrowleft': window.tile.focusDirection('a'); break
-        case 'd': case 'l': case 'arrowright': window.tile.focusDirection('d'); break
-        case '1': case '2': case '3': case '4': case '5':
-          window.workspace.switch(parseInt(e.key)); break
+        case 'b':
+          window.tile.spawn('browser')
+          break
+        case 't':
+          window.tile.spawn('terminal')
+          break
+        case 'q':
+          if (focusedId) window.tile.close(focusedId)
+          break
+        case 'a':
+        case 'h':
+        case 'arrowleft':
+          window.tile.focusDirection('a')
+          break
+        case 'd':
+        case 'l':
+        case 'arrowright':
+          window.tile.focusDirection('d')
+          break
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+          window.workspace.switch(parseInt(e.key))
+          break
       }
     }
 

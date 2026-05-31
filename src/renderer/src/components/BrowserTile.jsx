@@ -69,7 +69,11 @@ function BrowserTile({ id }) {
         <button
           type="button"
           disabled={!nav.canGoBack}
-          style={{ ...buttonStyle, opacity: nav.canGoBack ? 1 : 0.35, cursor: nav.canGoBack ? 'pointer' : 'default' }}
+          style={{
+            ...buttonStyle,
+            opacity: nav.canGoBack ? 1 : 0.35,
+            cursor: nav.canGoBack ? 'pointer' : 'default'
+          }}
           onClick={() => window.browser?.back(id)}
         >
           ‹
@@ -77,7 +81,11 @@ function BrowserTile({ id }) {
         <button
           type="button"
           disabled={!nav.canGoForward}
-          style={{ ...buttonStyle, opacity: nav.canGoForward ? 1 : 0.35, cursor: nav.canGoForward ? 'pointer' : 'default' }}
+          style={{
+            ...buttonStyle,
+            opacity: nav.canGoForward ? 1 : 0.35,
+            cursor: nav.canGoForward ? 'pointer' : 'default'
+          }}
           onClick={() => window.browser?.forward(id)}
         >
           ›

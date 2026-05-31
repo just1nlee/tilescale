@@ -122,7 +122,7 @@ export default class ProfileManager {
   cycle(step) {
     const idx = this.profiles.findIndex((p) => p.id === this.activeId)
     const len = this.profiles.length
-    const next = ((idx + step) % len + len) % len
+    const next = (((idx + step) % len) + len) % len
     return this.profiles[next].id
   }
 

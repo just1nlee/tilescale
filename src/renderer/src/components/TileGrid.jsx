@@ -54,7 +54,7 @@ function TileGrid({ layout, onTileClick }) {
                     boxShadow: focused
                       ? '0 0 0 1px rgba(255, 255, 255, 0.25), 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 24px rgba(255, 255, 255, 0.08)'
                       : '0 4px 16px rgba(0, 0, 0, 0.25)',
-                    transition: 'border-color 120ms ease, box-shadow 120ms ease',
+                    transition: 'border-color 120ms ease, box-shadow 120ms ease'
                   }}
                 >
                   {tile.type === 'terminal' && (

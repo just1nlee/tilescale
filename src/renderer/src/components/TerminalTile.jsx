@@ -40,7 +40,7 @@ function TerminalTile({ id, isFocused }) {
         brightBlue: '#bcd6ff',
         brightMagenta: '#e6c4ff',
         brightCyan: '#bff0f6',
-        brightWhite: '#ffffff',
+        brightWhite: '#ffffff'
       }
     })
     const fitAddon = new FitAddon()
@@ -99,19 +99,17 @@ function TerminalTile({ id, isFocused }) {
       unsubscribe()
       terminal.dispose()
     }
-  }, [])
+    // id is stable for a mounted tile (TileGrid keys each tile by id, so a new
+    // id means a fresh mount), so this effectively runs once per tile — but we
+    // list id to satisfy exhaustive-deps and stay correct if that ever changes.
+  }, [id])
 
   // Give xterm real DOM focus whenever this tile becomes the focused tile.
   useEffect(() => {
     if (isFocused) terminalRef.current?.focus()
   }, [isFocused])
 
-  return (
-    <div
-      ref={containerRef}
-      style={{ width: '100%', height: '100%' }}
-    />
-  )
+  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 }
 
 export default TerminalTile

@@ -15,7 +15,7 @@ const iconButtonStyle = {
   fontSize: '11px',
   lineHeight: 1,
   cursor: 'pointer',
-  padding: 0,
+  padding: 0
 }
 
 function StatusBar({
@@ -51,15 +51,21 @@ function StatusBar({
 
   // Whenever the dropdown closes (via the P key, Escape, outside-click, or a
   // selection), drop any half-finished create/rename so it doesn't reappear the
-  // next time it opens.
-  useEffect(() => {
+  // next time it opens. `open` is controlled by App, so we react to its change
+  // here. We do this during render with a prev-value tracker — React's
+  // recommended alternative to a state-resetting effect — which avoids the
+  // extra commit/repaint a useEffect would cause (and the set-state-in-effect
+  // lint that comes with it).
+  const [wasOpen, setWasOpen] = useState(open)
+  if (wasOpen !== open) {
+    setWasOpen(open)
     if (!open) {
       setCreating(false)
       setDraftName('')
       setRenamingId(null)
       setRenameDraft('')
     }
-  }, [open])
+  }
 
   // Click anywhere outside the selector wrapper closes the dropdown. Using
   // mousedown (not click) so it fires before any inner button's onClick, which
@@ -103,71 +109,79 @@ function StatusBar({
   }
 
   return (
-    <div style={{
-      flexShrink: 0,
-      position: 'relative',
-      height: '36px',
-      background: 'rgba(20, 20, 20, 0.55)',
-      border: '1px solid rgba(255, 255, 255, 0.18)',
-      borderRadius: '10px',
-      margin: '0 8px 8px 8px',
-      padding: '0 12px',
-      boxSizing: 'border-box',
-      color: '#f0f0f0',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      fontSize: '13px',
-      fontFamily: 'monospace',
-      backdropFilter: 'blur(20px) saturate(160%)',
-      WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
-    }}>
+    <div
+      style={{
+        flexShrink: 0,
+        position: 'relative',
+        height: '36px',
+        background: 'rgba(20, 20, 20, 0.55)',
+        border: '1px solid rgba(255, 255, 255, 0.18)',
+        borderRadius: '10px',
+        margin: '0 8px 8px 8px',
+        padding: '0 12px',
+        boxSizing: 'border-box',
+        color: '#f0f0f0',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        fontSize: '13px',
+        fontFamily: 'monospace',
+        backdropFilter: 'blur(20px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)'
+      }}
+    >
       {/* Brand mark: absolutely centered so it sits at the true midpoint of
           the bar independent of the flex children's widths. pointer-events
           none lets clicks fall through to whatever is under it (the profile
           selector lives in the same horizontal zone). */}
-      <span style={{
-        position: 'absolute',
-        left: '50%',
-        top: '50%',
-        transform: 'translate(-50%, -50%)',
-        pointerEvents: 'none',
-        color: 'rgba(255, 255, 255, 0.35)',
-        fontSize: '12px',
-        fontWeight: 700,
-        letterSpacing: '2.5px',
-        textTransform: 'uppercase',
-        lineHeight: 1,
-        userSelect: 'none',
-      }}>
+      <span
+        style={{
+          position: 'absolute',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: 'none',
+          color: 'rgba(255, 255, 255, 0.35)',
+          fontSize: '12px',
+          fontWeight: 700,
+          letterSpacing: '2.5px',
+          textTransform: 'uppercase',
+          lineHeight: 1,
+          userSelect: 'none'
+        }}
+      >
         Tilescale
       </span>
       {/* Fixed-width slot reserves the space for the longest label so the
           workspace indicators never shift, while the pill inside hugs its own
           text — TILE renders a narrower pill than INSERT. */}
       <div style={{ width: '64px', flexShrink: 0, display: 'flex' }}>
-        <span style={{
-          background: modeStyle.bg,
-          color: modeStyle.text,
-          border: `1px solid ${modeStyle.border}`,
-          borderRadius: '5px',
-          padding: '2px 8px',
-          fontSize: '11px',
-          fontWeight: 600,
-          letterSpacing: '0.6px',
-          textTransform: 'uppercase',
-          lineHeight: 1,
-        }}>
+        <span
+          style={{
+            background: modeStyle.bg,
+            color: modeStyle.text,
+            border: `1px solid ${modeStyle.border}`,
+            borderRadius: '5px',
+            padding: '2px 8px',
+            fontSize: '11px',
+            fontWeight: 600,
+            letterSpacing: '0.6px',
+            textTransform: 'uppercase',
+            lineHeight: 1
+          }}
+        >
           {modeLabel}
         </span>
       </div>
-      <div style={{
-        display: 'flex',
-        gap: '2px',
-        height: '100%',
-        alignItems: 'stretch',
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: '2px',
+          height: '100%',
+          alignItems: 'stretch'
+        }}
+      >
         {[1, 2, 3, 4, 5].map((n) => {
           const active = n === workspace
           return (
@@ -183,7 +197,7 @@ function StatusBar({
                 color: active ? '#f0f0f0' : 'rgba(255, 255, 255, 0.4)',
                 fontSize: '12px',
                 fontWeight: active ? 600 : 500,
-                transition: 'color 120ms ease, background 120ms ease',
+                transition: 'color 120ms ease, background 120ms ease'
               }}
             >
               {n}
@@ -192,10 +206,7 @@ function StatusBar({
         })}
       </div>
 
-      <div
-        ref={wrapRef}
-        style={{ marginLeft: 'auto', position: 'relative' }}
-      >
+      <div ref={wrapRef} style={{ marginLeft: 'auto', position: 'relative' }}>
         <button
           type="button"
           onClick={() => onOpenChange?.(!open)}
@@ -211,24 +222,28 @@ function StatusBar({
             fontFamily: 'monospace',
             fontSize: '12px',
             lineHeight: 1,
-            cursor: 'pointer',
+            cursor: 'pointer'
           }}
         >
-          <span style={{
-            color: 'rgba(255, 255, 255, 0.45)',
-            fontSize: '10px',
-            letterSpacing: '0.6px',
-            textTransform: 'uppercase',
-          }}>
+          <span
+            style={{
+              color: 'rgba(255, 255, 255, 0.45)',
+              fontSize: '10px',
+              letterSpacing: '0.6px',
+              textTransform: 'uppercase'
+            }}
+          >
             Profile
           </span>
           <span style={{ fontWeight: 600 }}>{activeProfile?.name ?? 'Default'}</span>
-          <span style={{
-            color: 'rgba(255, 255, 255, 0.5)',
-            fontSize: '9px',
-            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 120ms ease',
-          }}>
+          <span
+            style={{
+              color: 'rgba(255, 255, 255, 0.5)',
+              fontSize: '9px',
+              transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 120ms ease'
+            }}
+          >
             ▾
           </span>
         </button>
@@ -250,7 +265,7 @@ function StatusBar({
               display: 'flex',
               flexDirection: 'column',
               gap: '2px',
-              zIndex: 10,
+              zIndex: 10
             }}
           >
             {profiles.map((p) => {
@@ -290,7 +305,7 @@ function StatusBar({
                         fontFamily: 'monospace',
                         fontSize: '12px',
                         padding: '4px 6px',
-                        outline: 'none',
+                        outline: 'none'
                       }}
                     />
                     <button
@@ -305,7 +320,7 @@ function StatusBar({
                         fontSize: '12px',
                         padding: '0 8px',
                         cursor: renameDraft.trim() ? 'pointer' : 'default',
-                        opacity: renameDraft.trim() ? 1 : 0.5,
+                        opacity: renameDraft.trim() ? 1 : 0.5
                       }}
                     >
                       Save
@@ -340,10 +355,12 @@ function StatusBar({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    gap: '8px',
+                    gap: '8px'
                   }}
                 >
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span
+                    style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  >
                     {p.name}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
@@ -388,11 +405,13 @@ function StatusBar({
               )
             })}
 
-            <div style={{
-              height: '1px',
-              background: 'rgba(255, 255, 255, 0.1)',
-              margin: '4px 4px',
-            }} />
+            <div
+              style={{
+                height: '1px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                margin: '4px 4px'
+              }}
+            />
 
             {creating ? (
               <form
@@ -426,7 +445,7 @@ function StatusBar({
                     fontFamily: 'monospace',
                     fontSize: '12px',
                     padding: '4px 6px',
-                    outline: 'none',
+                    outline: 'none'
                   }}
                 />
                 <button
@@ -441,7 +460,7 @@ function StatusBar({
                     fontSize: '12px',
                     padding: '0 8px',
                     cursor: draftName.trim() ? 'pointer' : 'default',
-                    opacity: draftName.trim() ? 1 : 0.5,
+                    opacity: draftName.trim() ? 1 : 0.5
                   }}
                 >
                   Add
@@ -460,7 +479,7 @@ function StatusBar({
                   color: 'rgba(255, 255, 255, 0.65)',
                   fontFamily: 'monospace',
                   fontSize: '12px',
-                  cursor: 'pointer',
+                  cursor: 'pointer'
                 }}
               >
                 + New profile…

@@ -4,13 +4,17 @@ import os from 'os'
 
 class PtyManager {
   constructor() {
-    this.process = null
+    this.processes = new Map()
+
+    ipcMain.on('pty:write', (_event, { id, data }) => {
+      this.processes.get(id)?.write(data)
+    })
   }
 
-  spawn(webContents) {
+  spawn(id, webContents) {
     const shell = process.env.SHELL || '/bin/zsh'
 
-    this.process = pty.spawn(shell, [], {
+    const proc = pty.spawn(shell, [], {
       name: 'xterm-256color',
       cols: 80,
       rows: 24,
@@ -18,21 +22,24 @@ class PtyManager {
       env: process.env
     })
 
-    // pty:data - send shell output to renderer
-    this.process.onData((data) => {
-      webContents.send('pty:data', data)
+    proc.onData((data) => {
+      webContents.send('pty:data', { id, data })
     })
 
-    // pty:write - listen for keystrokes from renderer, write to shell
-    ipcMain.on('pty:write', (_event, data) => {
-      this.process.write(data)
-    })
+    this.processes.set(id, proc)
   }
 
-  kill() {
-    if (this.process) {
-      this.process.kill()
-      this.process = null
+  kill(id) {
+    const proc = this.processes.get(id)
+    if (proc) {
+      proc.kill()
+      this.processes.delete(id)
+    }
+  }
+
+  killAll() {
+    for (const [id] of this.processes) {
+      this.kill(id)
     }
   }
 }

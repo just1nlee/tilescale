@@ -81,6 +81,20 @@ const mode = {
   }
 }
 
+// Profile API — exposes named saved-session switching to the renderer:
+//   profile.onState(cb)  — subscribe to { profiles, activeId } pushes from main
+//   profile.switch(id)   — ask main to swap the whole tile world to profile id
+//   profile.create(name) — create a new (empty) profile and switch into it
+const profile = {
+  onState: (callback) => {
+    const handler = (_event, state) => callback(state)
+    ipcRenderer.on('profile:state', handler)
+    return () => ipcRenderer.removeListener('profile:state', handler)
+  },
+  switch: (id) => ipcRenderer.send('profile:switch', id),
+  create: (name) => ipcRenderer.send('profile:create', name)
+}
+
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.
@@ -93,6 +107,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('workspace', workspace)
     contextBridge.exposeInMainWorld('mode', mode)
     contextBridge.exposeInMainWorld('browser', browser)
+    contextBridge.exposeInMainWorld('profile', profile)
   } catch (error) {
     console.error(error)
   }
@@ -104,4 +119,5 @@ if (process.contextIsolated) {
   window.workspace = workspace
   window.mode = mode
   window.browser = browser
+  window.profile = profile
 }

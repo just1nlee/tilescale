@@ -220,6 +220,19 @@ app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
+  // Strip the "<appName>/x.y.z" and "Electron/x" tokens from the default
+  // User-Agent so embedded-browser sign-in checks (Google, Anthropic, GitHub…)
+  // see plain Chrome — which, under the hood, the page genuinely is. Setting it
+  // on app.userAgentFallback (rather than per WebContentsView) means EVERY
+  // webContents we create inherits it, including the OAuth popups that
+  // BrowserManager now opens as real child windows. Those popups are fresh
+  // webContents that never pass through BrowserManager._create, so a per-view
+  // override would miss them and their very first request would be blocked.
+  const appToken = new RegExp(` ?${app.getName()}\\/[^\\s]+`, 'i')
+  app.userAgentFallback = app.userAgentFallback
+    .replace(appToken, '')
+    .replace(/ ?Electron\/[^\s]+/i, '')
+
   // Rehydrate (or seed) tile + mode state before the window loads, so the very
   // first layout the renderer receives already reflects the restored session.
   initializeSession()

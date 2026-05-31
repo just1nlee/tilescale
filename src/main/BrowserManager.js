@@ -72,13 +72,41 @@ class BrowserManager {
 
     // addChildView stacks the view ABOVE the window's main page (React), which
     // is exactly what we want — the live site floats over the placeholder div.
+    // The clean (Electron-token-free) User-Agent is set globally on
+    // app.userAgentFallback in index.js, so this view — and any popup it spawns
+    // below — already presents as plain Chrome to sign-in checks.
     this.parent.contentView.addChildView(view)
     view.webContents.loadURL(initialUrl || DEFAULT_URL)
 
-    // Keep target=_blank / window.open navigations inside the tile instead of
-    // spawning detached popups over our frameless always-on-top window.
-    view.webContents.setWindowOpenHandler(({ url }) => {
-      view.webContents.loadURL(url)
+    // Decide what a window.open / target=_blank should do:
+    //   • Real popups (disposition 'new-window') are how OAuth/sign-in flows
+    //     work — they open accounts.google.com (etc.) in a separate window,
+    //     authenticate, then postMessage the result back to their opener and
+    //     call window.close(). That handshake needs a genuine child window, so
+    //     we ALLOW it. Forcing such a popup into the tile severs window.opener
+    //     and yields "this page must be opened from …".
+    //   • Ordinary link "new tab" navigations have no opener dependency, so we
+    //     keep them inside the tile rather than spawning detached windows over
+    //     our frameless, always-on-top app.
+    view.webContents.setWindowOpenHandler((details) => {
+      if (details.disposition === 'new-window') {
+        return {
+          action: 'allow',
+          // alwaysOnTop so the popup isn't trapped behind our always-on-top
+          // main window; a normal framed window so the user can see/close it.
+          overrideBrowserWindowOptions: {
+            width: 600,
+            height: 720,
+            alwaysOnTop: true,
+            autoHideMenuBar: true,
+            webPreferences: {
+              contextIsolation: true,
+              nodeIntegration: false
+            }
+          }
+        }
+      }
+      view.webContents.loadURL(details.url)
       return { action: 'deny' }
     })
 
@@ -100,6 +128,16 @@ class BrowserManager {
         event.preventDefault()
         this.onShiftEnter?.()
       }
+    })
+
+    // A page can tear down its own webContents without going through our
+    // _destroy() — most commonly a sign-in/OAuth flow that calls window.close()
+    // after completing auth. That leaves a "zombie" entry: the view stays in
+    // this.views but view.webContents is now undefined, so any later focus/
+    // bounds call crashes. Drop the entry the moment its contents die so the
+    // map only ever holds live views.
+    view.webContents.on('destroyed', () => {
+      if (this.views.get(id) === view) this.views.delete(id)
     })
 
     // Clicking the live page focuses the native view, not React's onClick (the
@@ -244,7 +282,7 @@ class BrowserManager {
       // URL bar holds focus — leave it so the user can type a URL.
       if (this.editingId === focusedId) return
       const view = this.views.get(focusedId)
-      if (view && !view.webContents.isFocused()) view.webContents.focus()
+      if (view?.webContents && !view.webContents.isFocused()) view.webContents.focus()
       return
     }
 

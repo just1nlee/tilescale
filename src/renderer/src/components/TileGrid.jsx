@@ -1,16 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import TerminalTile from './TerminalTile'
 
-function TileGrid() {
+function TileGrid({ layout }) {
   const containerRef = useRef(null)
-  const [layout, setLayout] = useState({ tiles: [], focusedId: null })
 
   useEffect(() => {
-    // Subscribe to layout updates pushed from main whenever tile state changes.
-    window.tile.onLayout((newLayout) => setLayout(newLayout))
-
-    // ResizeObserver fires on mount and on every window resize.
-    // Each time, we report real pixel dimensions to main so bounds stay accurate.
     const observer = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect
       window.tile.resize(width, height)

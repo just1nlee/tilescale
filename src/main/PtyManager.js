@@ -19,6 +19,11 @@ class PtyManager {
   }
 
   spawn(id, webContents) {
+    // Idempotent: the renderer signals pty:ready from inside TerminalTile's
+    // useEffect, which can fire twice in React StrictMode. Without this guard
+    // we'd fork two shells per tile and the duplicate's output would interleave.
+    if (this.processes.has(id)) return
+
     const shell = process.env.SHELL || '/bin/zsh'
 
     const proc = pty.spawn(shell, [], {

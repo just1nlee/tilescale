@@ -11,7 +11,9 @@ const tileManager = new TileManager()
 const modeManager = new ModeManager()
 
 // Start with one terminal tile so there's something to display on launch.
-const initialTileId = tileManager.addTile('terminal')
+// Its pty is not spawned here — TerminalTile signals pty:ready once its
+// pty:data listener is wired, and main spawns the shell then.
+tileManager.addTile('terminal')
 
 let mainWindow = null
 
@@ -44,8 +46,12 @@ function createWindow() {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
-    // Spawn the shell once the renderer is ready to receive pty:data messages.
-    ptyManager.spawn(initialTileId, mainWindow.webContents)
+    // Note: we do NOT spawn the initial shell here. ready-to-show only means
+    // the page has done its first paint — React hasn't mounted yet, so the
+    // pty:data listener inside TerminalTile is not registered. Spawning now
+    // means zsh's startup banner and first prompt go to a webContents with
+    // no listener and are silently dropped. Instead, the renderer signals
+    // readiness via the pty:ready channel below.
     modeManager.attach(mainWindow.webContents)
   })
 
@@ -86,7 +92,9 @@ app.whenReady().then(() => {
   ipcMain.on('tile:spawn', (event, type) => {
     const id = tileManager.addTile(type)
     if (id === null) return
-    if (type === 'terminal') ptyManager.spawn(id, event.sender)
+    // Don't spawn the pty here — TerminalTile will call pty:ready once its
+    // pty:data listener is wired, and main spawns then. Spawning eagerly here
+    // races the renderer mount and drops the shell's startup output.
     event.sender.send('tile:layout', tileManager.getLayout())
   })
 
@@ -110,6 +118,16 @@ app.whenReady().then(() => {
   ipcMain.on('workspace:switch', (event, id) => {
     tileManager.switchWorkspace(id)
     event.sender.send('tile:layout', tileManager.getLayout())
+  })
+
+  // Renderer-driven shell spawn. TerminalTile sends this from inside its
+  // useEffect, immediately after registering the pty:data listener. By
+  // waiting for this signal we guarantee the listener exists before zsh
+  // prints its banner + first prompt, which fixes the dropped-output race
+  // at startup and on every new T-spawned tile.
+  ipcMain.on('pty:ready', (event, id) => {
+    const tile = tileManager.getTile(id)
+    if (tile?.type === 'terminal') ptyManager.spawn(id, event.sender)
   })
 
   createWindow()

@@ -15,7 +15,11 @@ const pty = {
     return () => ipcRenderer.removeListener('pty:data', handler)
   },
   write: (id, data) => ipcRenderer.send('pty:write', { id, data }),
-  resize: (id, cols, rows) => ipcRenderer.send('pty:resize', { id, cols, rows })
+  resize: (id, cols, rows) => ipcRenderer.send('pty:resize', { id, cols, rows }),
+  // Tells main "my pty:data listener is wired, safe to spawn the shell now".
+  // Must be called AFTER onData() so the very first byte (zsh banner +
+  // prompt) is delivered into xterm instead of dropped on the floor.
+  ready: (id) => ipcRenderer.send('pty:ready', id)
 }
 
 // Tile API — exposes layout channels to the renderer:

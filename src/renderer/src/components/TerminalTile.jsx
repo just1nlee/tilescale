@@ -66,6 +66,13 @@ function TerminalTile({ id, isFocused }) {
       if (tileId === id) terminal.write(data)
     })
 
+    // Tell main it's safe to spawn the shell now. Doing this here — AFTER
+    // onData is registered — closes the startup race where main would spawn
+    // node-pty in ready-to-show, zsh would print its banner + first prompt,
+    // and those bytes would arrive at the renderer before any pty:data
+    // listener existed and be silently dropped.
+    window.pty.ready(id)
+
     // pty:write - tag keystrokes with this tile's id so main routes to the right shell.
     terminal.onData((data) => {
       window.pty.write(id, data)

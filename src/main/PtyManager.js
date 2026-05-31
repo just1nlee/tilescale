@@ -18,7 +18,7 @@ class PtyManager {
     })
   }
 
-  spawn(id, webContents) {
+  spawn(id, webContents, onExit) {
     // Idempotent: the renderer signals pty:ready from inside TerminalTile's
     // useEffect, which can fire twice in React StrictMode. Without this guard
     // we'd fork two shells per tile and the duplicate's output would interleave.
@@ -36,6 +36,16 @@ class PtyManager {
 
     proc.onData((data) => {
       webContents.send('pty:data', { id, data })
+    })
+
+    // Shell terminated: user typed `exit`, hit Ctrl-D, or the shell crashed.
+    // Drop the dead handle from the map so a stray pty:write can't reach it,
+    // then notify the caller so it can collapse the tile and rebroadcast
+    // layout. Without this the tile becomes a zombie — visible, dead, and
+    // unable to receive input until the user manually presses Q.
+    proc.onExit(() => {
+      this.processes.delete(id)
+      onExit?.()
     })
 
     this.processes.set(id, proc)

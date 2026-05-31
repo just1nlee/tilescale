@@ -127,7 +127,19 @@ app.whenReady().then(() => {
   // at startup and on every new T-spawned tile.
   ipcMain.on('pty:ready', (event, id) => {
     const tile = tileManager.getTile(id)
-    if (tile?.type === 'terminal') ptyManager.spawn(id, event.sender)
+    if (tile?.type !== 'terminal') return
+
+    ptyManager.spawn(id, event.sender, () => {
+      // Shell exited (user typed `exit`, Ctrl-D, crash, or our own kill()
+      // call when Q is pressed). Collapse the tile so its xterm unmounts and
+      // the remaining tiles redistribute. isDestroyed guard handles the case
+      // where the shell exits as part of app shutdown — webContents is gone,
+      // so a send() would throw. Calling removeTile twice (once here, once
+      // from tile:close on Q) is safe; it's a filter, not a pop.
+      if (event.sender.isDestroyed()) return
+      tileManager.removeTile(id)
+      event.sender.send('tile:layout', tileManager.getLayout())
+    })
   })
 
   createWindow()

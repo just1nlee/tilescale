@@ -5,10 +5,22 @@ import icon from '../../resources/icon.png?asset'
 import PtyManager from './PtyManager'
 import TileManager from './TileManager'
 import ModeManager from './ModeManager'
+import BrowserManager from './BrowserManager'
 
 const ptyManager = new PtyManager()
 const tileManager = new TileManager()
 const modeManager = new ModeManager()
+const browserManager = new BrowserManager()
+
+// Single exit point for layout updates: reconcile the native browser views
+// against the new layout, then push it to the renderer. Every IPC handler
+// that mutates tiles funnels through here so WebContentsViews never drift out
+// of sync with the React-drawn tile grid.
+function broadcastLayout(sender) {
+  const layout = tileManager.getLayout()
+  browserManager.applyLayout(layout)
+  sender.send('tile:layout', layout)
+}
 
 // Start with one terminal tile so there's something to display on launch.
 // Its pty is not spawned here — TerminalTile signals pty:ready once its
@@ -43,6 +55,9 @@ function createWindow() {
 
   // Appear on every macOS Space so it overlays wherever the user is.
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+
+  // Give BrowserManager the window so it can parent native WebContentsViews.
+  browserManager.attach(mainWindow)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -86,7 +101,7 @@ app.whenReady().then(() => {
   // Tile IPC listeners
   ipcMain.on('tile:resize', (event, { width, height }) => {
     tileManager.setWindowSize(width, height)
-    event.sender.send('tile:layout', tileManager.getLayout())
+    broadcastLayout(event.sender)
   })
 
   ipcMain.on('tile:spawn', (event, type) => {
@@ -94,30 +109,33 @@ app.whenReady().then(() => {
     if (id === null) return
     // Don't spawn the pty here — TerminalTile will call pty:ready once its
     // pty:data listener is wired, and main spawns then. Spawning eagerly here
-    // races the renderer mount and drops the shell's startup output.
-    event.sender.send('tile:layout', tileManager.getLayout())
+    // races the renderer mount and drops the shell's startup output. Browser
+    // tiles need no such handshake: broadcastLayout creates their view.
+    broadcastLayout(event.sender)
   })
 
   ipcMain.on('tile:close', (event, id) => {
     const tile = tileManager.getTile(id)
     tileManager.removeTile(id)
     if (tile?.type === 'terminal') ptyManager.kill(id)
-    event.sender.send('tile:layout', tileManager.getLayout())
+    // A closed browser tile no longer appears in the layout, so broadcastLayout
+    // → applyLayout will tear down its WebContentsView.
+    broadcastLayout(event.sender)
   })
 
   ipcMain.on('tile:focus', (event, id) => {
     tileManager.setFocus(id)
-    event.sender.send('tile:layout', tileManager.getLayout())
+    broadcastLayout(event.sender)
   })
 
   ipcMain.on('tile:focus-direction', (event, dir) => {
     tileManager.focusDirection(dir)
-    event.sender.send('tile:layout', tileManager.getLayout())
+    broadcastLayout(event.sender)
   })
 
   ipcMain.on('workspace:switch', (event, id) => {
     tileManager.switchWorkspace(id)
-    event.sender.send('tile:layout', tileManager.getLayout())
+    broadcastLayout(event.sender)
   })
 
   // Renderer-driven shell spawn. TerminalTile sends this from inside its
@@ -138,7 +156,7 @@ app.whenReady().then(() => {
       // from tile:close on Q) is safe; it's a filter, not a pop.
       if (event.sender.isDestroyed()) return
       tileManager.removeTile(id)
-      event.sender.send('tile:layout', tileManager.getLayout())
+      broadcastLayout(event.sender)
     })
   })
 

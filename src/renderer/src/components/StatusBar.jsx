@@ -209,7 +209,14 @@ function StatusBar({
       <div ref={wrapRef} style={{ marginLeft: 'auto', position: 'relative' }}>
         <button
           type="button"
-          onClick={() => onOpenChange?.(!open)}
+          onClick={(e) => {
+            // Drop DOM focus after toggling. Otherwise the button keeps focus
+            // and Chromium re-paints its default focus ring whenever the window
+            // loses and regains focus (e.g. after Option+Space), making the
+            // selector look "highlighted" when nothing is actually selected.
+            e.currentTarget.blur()
+            onOpenChange?.(!open)
+          }}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -222,7 +229,8 @@ function StatusBar({
             fontFamily: 'monospace',
             fontSize: '12px',
             lineHeight: 1,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            outline: 'none'
           }}
         >
           <span

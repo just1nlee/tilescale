@@ -51,8 +51,13 @@ function TerminalTile({ id, isFocused }) {
     terminal.open(containerRef.current)
 
     // Size the terminal to fill its container (sets cols/rows from pixel dimensions).
-    fitAddon.fit()
-    window.pty.resize(id, terminal.cols, terminal.rows)
+    // Skip if the container is hidden (display:none → 0×0): fit() would yield
+    // cols/rows of 0/NaN and node-pty would throw InvalidArgument on resize.
+    // The ResizeObserver below catches up the moment the wrapper becomes visible.
+    if (containerRef.current.clientWidth > 0 && containerRef.current.clientHeight > 0) {
+      fitAddon.fit()
+      window.pty.resize(id, terminal.cols, terminal.rows)
+    }
 
     terminalRef.current = terminal
 

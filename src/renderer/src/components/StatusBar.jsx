@@ -1,5 +1,5 @@
-function StatusBar({ mode }) {
-  const label = mode === 'INSERT' ? '-- INSERT --' : '-- TILE --'
+function StatusBar({ mode, workspace }) {
+  const label = mode === 'INSERT' ? '-- INSERT --' : `-- TILE -- [${workspace}]`
 
   return (
     <div style={{

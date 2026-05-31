@@ -138,6 +138,16 @@ app.whenReady().then(() => {
     broadcastLayout(event.sender)
   })
 
+  // Browser navigation IPC — routed straight to the native WebContentsView
+  // that BrowserManager owns for the given tile id.
+  ipcMain.on('browser:navigate', (_event, { id, url }) => browserManager.navigate(id, url))
+  ipcMain.on('browser:back', (_event, id) => browserManager.back(id))
+  ipcMain.on('browser:forward', (_event, id) => browserManager.forward(id))
+  ipcMain.on('browser:reload', (_event, id) => browserManager.reload(id))
+  // BrowserTile asks for current state on mount so its URL bar is correct even
+  // if it mounted after the page's first navigation already fired.
+  ipcMain.on('browser:request-state', (_event, id) => browserManager.emitState(id))
+
   // Renderer-driven shell spawn. TerminalTile sends this from inside its
   // useEffect, immediately after registering the pty:data listener. By
   // waiting for this signal we guarantee the listener exists before zsh

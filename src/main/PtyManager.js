@@ -4,13 +4,19 @@ import os from 'os'
 
 class PtyManager {
   constructor() {
-    this.process = null
+    this.processes = new Map() // tileId → pty process
+
+    // Registered once. Routes keystrokes to the correct shell by tile ID.
+    ipcMain.on('pty:write', (_event, { id, data }) => {
+      this.processes.get(id)?.write(data)
+    })
   }
 
-  spawn(webContents) {
+  // Spawns a shell for the given tile ID and streams its output back tagged with that ID.
+  spawn(id, webContents) {
     const shell = process.env.SHELL || '/bin/zsh'
 
-    this.process = pty.spawn(shell, [], {
+    const process = pty.spawn(shell, [], {
       name: 'xterm-256color',
       cols: 80,
       rows: 24,
@@ -18,21 +24,26 @@ class PtyManager {
       env: process.env
     })
 
-    // pty:data - send shell output to renderer
-    this.process.onData((data) => {
-      webContents.send('pty:data', data)
+    process.onData((data) => {
+      webContents.send('pty:data', { id, data })
     })
 
-    // pty:write - listen for keystrokes from renderer, write to shell
-    ipcMain.on('pty:write', (_event, data) => {
-      this.process.write(data)
-    })
+    this.processes.set(id, process)
   }
 
-  kill() {
-    if (this.process) {
-      this.process.kill()
-      this.process = null
+  // Kills the shell for a single tile (called when that tile is closed).
+  kill(id) {
+    const process = this.processes.get(id)
+    if (process) {
+      process.kill()
+      this.processes.delete(id)
+    }
+  }
+
+  // Kills all shells (called on app quit).
+  killAll() {
+    for (const [id] of this.processes) {
+      this.kill(id)
     }
   }
 }

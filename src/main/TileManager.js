@@ -2,10 +2,18 @@ import { randomUUID } from 'crypto'
 
 class TileManager {
   constructor() {
-    this.tiles = []       // [{ id, type, bounds: { x, y, width, height } }]
-    this.focusedId = null
+    this.activeWorkspace = 1
+    this.workspaces = {}
+    for (let i = 1; i <= 5; i++) {
+      this.workspaces[i] = { tiles: [], focusedId: null }
+    }
     this.windowWidth = 900
     this.windowHeight = 670
+  }
+
+  // Shorthand for the active workspace slot.
+  _ws() {
+    return this.workspaces[this.activeWorkspace]
   }
 
   // Called when the renderer reports the real window pixel size.
@@ -15,41 +23,48 @@ class TileManager {
     this._recalculate()
   }
 
+  // Switches to workspace id, freezing the current one in place.
+  switchWorkspace(id) {
+    this.activeWorkspace = id
+    this._recalculate()
+  }
+
   // Adds a tile of the given type, focuses it, returns its id. Max 2 tiles.
   addTile(type) {
-    if (this.tiles.length >= 2) return null
+    if (this._ws().tiles.length >= 2) return null
     const id = randomUUID()
-    this.tiles.push({ id, type, bounds: null })
-    this.focusedId = id
+    this._ws().tiles.push({ id, type, bounds: null })
+    this._ws().focusedId = id
     this._recalculate()
     return id
   }
 
   // Removes a tile by id and shifts focus to the last remaining tile.
   removeTile(id) {
-    this.tiles = this.tiles.filter((t) => t.id !== id)
-    if (this.focusedId === id) {
-      this.focusedId = this.tiles.length > 0 ? this.tiles[this.tiles.length - 1].id : null
+    this._ws().tiles = this._ws().tiles.filter((t) => t.id !== id)
+    if (this._ws().focusedId === id) {
+      const tiles = this._ws().tiles
+      this._ws().focusedId = tiles.length > 0 ? tiles[tiles.length - 1].id : null
     }
     this._recalculate()
   }
 
   getTile(id) {
-    return this.tiles.find((t) => t.id === id)
+    return this._ws().tiles.find((t) => t.id === id)
   }
 
   setFocus(id) {
-    this.focusedId = id
+    this._ws().focusedId = id
   }
 
   focusDirection(dir) {
-    const focused = this.getTile(this.focusedId)
+    const focused = this.getTile(this._ws().focusedId)
     if (!focused) return
 
     const fc = { x: focused.bounds.x + focused.bounds.width / 2 }
 
-    const candidates = this.tiles.filter((t) => {
-      if (t.id === this.focusedId) return false
+    const candidates = this._ws().tiles.filter((t) => {
+      if (t.id === this._ws().focusedId) return false
       const cx = t.bounds.x + t.bounds.width / 2
       if (dir === 'a') return cx < fc.x
       if (dir === 'd') return cx > fc.x
@@ -63,14 +78,15 @@ class TileManager {
       return dist < bestDist ? t : best
     })
 
-    this.focusedId = nearest.id
+    this._ws().focusedId = nearest.id
   }
 
   // Returns the layout snapshot the renderer needs to draw tiles.
   getLayout() {
     return {
-      tiles: this.tiles.map((t) => ({ id: t.id, type: t.type, bounds: t.bounds })),
-      focusedId: this.focusedId
+      tiles: this._ws().tiles.map((t) => ({ id: t.id, type: t.type, bounds: t.bounds })),
+      focusedId: this._ws().focusedId,
+      activeWorkspace: this.activeWorkspace
     }
   }
 
@@ -84,14 +100,15 @@ class TileManager {
   ]
 
   _recalculate() {
-    const count = this.tiles.length
+    const tiles = this._ws().tiles
+    const count = tiles.length
     if (count === 0) return
 
     const slots = TileManager.LAYOUTS[count]
     const W = this.windowWidth
     const H = this.windowHeight
 
-    this.tiles.forEach((tile, i) => {
+    tiles.forEach((tile, i) => {
       const s = slots[i]
       tile.bounds = {
         x: Math.round(s.x * W),

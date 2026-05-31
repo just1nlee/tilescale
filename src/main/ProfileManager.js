@@ -4,6 +4,10 @@ import { randomUUID } from 'crypto'
 // later bind number keys (1–9) to direct profile selection if we want.
 const MAX_PROFILES = 9
 
+// Max profile name length. The StatusBar inputs enforce this too (maxLength);
+// we re-clamp here so a name can never exceed it regardless of entry path.
+const MAX_NAME_LENGTH = 12
+
 // A profile's "snapshot" is exactly the per-profile slice that TileManager
 // already knows how to restore: which workspace was active and the tile array
 // for each of the 5 workspaces. An empty snapshot is the launch default — five
@@ -73,7 +77,8 @@ export default class ProfileManager {
   // if we're at the cap so the caller can ignore the request quietly.
   create(name) {
     if (this.profiles.length >= MAX_PROFILES) return null
-    const trimmed = (name ?? '').trim() || `Profile ${this.profiles.length + 1}`
+    const trimmed =
+      (name ?? '').trim().slice(0, MAX_NAME_LENGTH) || `Profile ${this.profiles.length + 1}`
     const id = randomUUID()
     this.profiles.push({ id, name: trimmed })
     this.snapshots[id] = emptySnapshot()
@@ -82,6 +87,34 @@ export default class ProfileManager {
 
   setActive(id) {
     if (this.has(id)) this.activeId = id
+  }
+
+  // Rename a profile in place. Ignores unknown ids and empty names so a stray
+  // request can't blank out a profile's label.
+  rename(id, name) {
+    const profile = this.profiles.find((p) => p.id === id)
+    const trimmed = (name ?? '').trim().slice(0, MAX_NAME_LENGTH)
+    if (!profile || !trimmed) return
+    profile.name = trimmed
+  }
+
+  // Delete a profile and its snapshot. Refuses to remove the last remaining
+  // profile — there must always be one tile world to show. If the active
+  // profile is removed, the active id falls back to a neighbour (the caller is
+  // responsible for restoring that profile's tiles into TileManager). Returns
+  // true when something was actually removed.
+  remove(id) {
+    if (this.profiles.length <= 1) return false
+    const idx = this.profiles.findIndex((p) => p.id === id)
+    if (idx === -1) return false
+
+    this.profiles.splice(idx, 1)
+    delete this.snapshots[id]
+
+    if (this.activeId === id) {
+      this.activeId = this.profiles[Math.max(0, idx - 1)].id
+    }
+    return true
   }
 
   // Id of the profile `step` positions from the active one, wrapping around.

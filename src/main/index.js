@@ -279,6 +279,29 @@ app.whenReady().then(() => {
     switchProfile(event.sender, created.id)
   })
 
+  // Rename is pure metadata — no tile changes, just rebroadcast the list.
+  ipcMain.on('profile:rename', (event, { id, name }) => {
+    profileManager.rename(id, name)
+    broadcastProfiles(event.sender)
+  })
+
+  // Delete a profile. If it's the active one, the whole tile world must move to
+  // the new active profile chosen by ProfileManager.remove: kill the outgoing
+  // ptys (no capture — the profile is being discarded) and restore the new
+  // active profile's snapshot, exactly like a switch. Deleting an inactive
+  // profile only drops its snapshot, so tiles are untouched.
+  ipcMain.on('profile:delete', (event, id) => {
+    const wasActive = id === profileManager.getActiveId()
+    if (!profileManager.remove(id)) return
+
+    if (wasActive) {
+      ptyManager.killAll()
+      tileManager.restore(profileManager.getSnapshot(profileManager.getActiveId()))
+      broadcastLayout(event.sender)
+    }
+    broadcastProfiles(event.sender)
+  })
+
   // A React overlay (profile selector) opened/closed. Native browser views sit
   // above the React page, so we hide them while it's up. broadcastLayout's
   // applyLayout pass applies the new visibility.

@@ -95,7 +95,9 @@ const profile = {
     return () => ipcRenderer.removeListener('profile:state', handler)
   },
   switch: (id) => ipcRenderer.send('profile:switch', id),
-  create: (name) => ipcRenderer.send('profile:create', name)
+  create: (name) => ipcRenderer.send('profile:create', name),
+  rename: (id, name) => ipcRenderer.send('profile:rename', { id, name }),
+  remove: (id) => ipcRenderer.send('profile:delete', id)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

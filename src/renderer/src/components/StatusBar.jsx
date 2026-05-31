@@ -1,5 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 
+// Small square icon button used for the per-profile rename/delete affordances.
+const iconButtonStyle = {
+  width: '20px',
+  height: '20px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: 'rgba(255, 255, 255, 0.08)',
+  border: '1px solid rgba(255, 255, 255, 0.18)',
+  borderRadius: '4px',
+  color: '#f0f0f0',
+  fontFamily: 'monospace',
+  fontSize: '11px',
+  lineHeight: 1,
+  cursor: 'pointer',
+  padding: 0,
+}
+
 function StatusBar({
   mode,
   workspace,
@@ -7,6 +25,8 @@ function StatusBar({
   activeProfileId,
   onSelectProfile,
   onCreateProfile,
+  onRenameProfile,
+  onDeleteProfile,
   open = false,
   onOpenChange,
   highlightedId,
@@ -24,7 +44,22 @@ function StatusBar({
   // keys itself. The inline "new profile" name field stays local UI state.
   const [creating, setCreating] = useState(false)
   const [draftName, setDraftName] = useState('')
+  // Which profile row is being renamed inline, plus its working text.
+  const [renamingId, setRenamingId] = useState(null)
+  const [renameDraft, setRenameDraft] = useState('')
   const wrapRef = useRef(null)
+
+  // Whenever the dropdown closes (via the P key, Escape, outside-click, or a
+  // selection), drop any half-finished create/rename so it doesn't reappear the
+  // next time it opens.
+  useEffect(() => {
+    if (!open) {
+      setCreating(false)
+      setDraftName('')
+      setRenamingId(null)
+      setRenameDraft('')
+    }
+  }, [open])
 
   // Click anywhere outside the selector wrapper closes the dropdown. Using
   // mousedown (not click) so it fires before any inner button's onClick, which
@@ -49,6 +84,22 @@ function StatusBar({
     setDraftName('')
     setCreating(false)
     onOpenChange?.(false)
+  }
+
+  const startRename = (profile) => {
+    setRenamingId(profile.id)
+    setRenameDraft(profile.name)
+  }
+
+  const cancelRename = () => {
+    setRenamingId(null)
+    setRenameDraft('')
+  }
+
+  const submitRename = () => {
+    const trimmed = renameDraft.trim()
+    if (trimmed) onRenameProfile?.(renamingId, trimmed)
+    cancelRename()
   }
 
   return (
@@ -205,17 +256,73 @@ function StatusBar({
             {profiles.map((p) => {
               const active = p.id === activeProfileId
               const highlighted = p.id === highlightedId
+
+              // Renaming this row: swap it for an inline text field. Rows are
+              // divs (not buttons) so we can nest the rename/delete buttons —
+              // nesting <button> inside <button> is invalid HTML.
+              if (renamingId === p.id) {
+                return (
+                  <form
+                    key={p.id}
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      submitRename()
+                    }}
+                    style={{ display: 'flex', gap: '4px', padding: '2px' }}
+                  >
+                    <input
+                      autoFocus
+                      data-profile-name-input="true"
+                      maxLength={16}
+                      value={renameDraft}
+                      onChange={(e) => setRenameDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') cancelRename()
+                      }}
+                      spellCheck={false}
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        background: 'rgba(0, 0, 0, 0.35)',
+                        border: '1px solid rgba(255, 255, 255, 0.18)',
+                        borderRadius: '5px',
+                        color: '#f0f0f0',
+                        fontFamily: 'monospace',
+                        fontSize: '12px',
+                        padding: '4px 6px',
+                        outline: 'none',
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!renameDraft.trim()}
+                      style={{
+                        background: 'rgba(94, 158, 255, 0.18)',
+                        border: '1px solid rgba(94, 158, 255, 0.45)',
+                        borderRadius: '5px',
+                        color: '#9ec5ff',
+                        fontFamily: 'monospace',
+                        fontSize: '12px',
+                        padding: '0 8px',
+                        cursor: renameDraft.trim() ? 'pointer' : 'default',
+                        opacity: renameDraft.trim() ? 1 : 0.5,
+                      }}
+                    >
+                      Save
+                    </button>
+                  </form>
+                )
+              }
+
               return (
-                <button
+                <div
                   key={p.id}
-                  type="button"
                   onMouseEnter={() => onHighlightChange?.(p.id)}
                   onClick={() => {
                     onSelectProfile?.(p.id)
                     onOpenChange?.(false)
                   }}
                   style={{
-                    textAlign: 'left',
                     background: active
                       ? 'rgba(94, 158, 255, 0.18)'
                       : highlighted
@@ -236,9 +343,48 @@ function StatusBar({
                     gap: '8px',
                   }}
                 >
-                  <span>{p.name}</span>
-                  {active && <span style={{ fontSize: '11px' }}>✓</span>}
-                </button>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.name}
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                    {/* Action buttons reveal on the hovered/highlighted row.
+                        stopPropagation keeps a click from also selecting the
+                        row (which would switch profile + close the dropdown).
+                        Rendered BEFORE the checkmark so the checkmark stays
+                        pinned to the row's right edge — the action group
+                        grows leftward when hovered, leaving the rightmost
+                        slot untouched. */}
+                    {highlighted && (
+                      <>
+                        <button
+                          type="button"
+                          title="Rename"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            startRename(p)
+                          }}
+                          style={iconButtonStyle}
+                        >
+                          ✎
+                        </button>
+                        {profiles.length > 1 && (
+                          <button
+                            type="button"
+                            title="Delete"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onDeleteProfile?.(p.id)
+                            }}
+                            style={{ ...iconButtonStyle, color: '#ff9b9b' }}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {active && <span style={{ fontSize: '11px' }}>✓</span>}
+                  </div>
+                </div>
               )
             })}
 
@@ -269,6 +415,7 @@ function StatusBar({
                   }}
                   placeholder="Profile name"
                   spellCheck={false}
+                  maxLength={16}
                   style={{
                     flex: 1,
                     minWidth: 0,

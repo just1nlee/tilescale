@@ -135,6 +135,16 @@ function App() {
     window.profile.create(trimmed)
   }
 
+  const handleRenameProfile = (id, name) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    window.profile.rename(id, trimmed)
+  }
+
+  const handleDeleteProfile = (id) => {
+    window.profile.remove(id)
+  }
+
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -147,6 +157,8 @@ function App() {
         activeProfileId={activeProfileId}
         onSelectProfile={handleSelectProfile}
         onCreateProfile={handleCreateProfile}
+        onRenameProfile={handleRenameProfile}
+        onDeleteProfile={handleDeleteProfile}
         open={selectorOpen}
         onOpenChange={setSelectorOpen}
         highlightedId={highlightedId}

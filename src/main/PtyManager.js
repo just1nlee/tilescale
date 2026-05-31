@@ -4,19 +4,29 @@ import os from 'os'
 
 class PtyManager {
   constructor() {
-    this.processes = new Map() // tileId → pty process
+    this.processes = new Map()
 
-    // Registered once. Routes keystrokes to the correct shell by tile ID.
     ipcMain.on('pty:write', (_event, { id, data }) => {
       this.processes.get(id)?.write(data)
     })
+
+    // Renderer reports the terminal's pixel-grid size in cells. We forward it
+    // to node-pty, which sets the kernel pty winsize and raises SIGWINCH so
+    // the shell knows where to wrap lines.
+    ipcMain.on('pty:resize', (_event, { id, cols, rows }) => {
+      this.processes.get(id)?.resize(cols, rows)
+    })
   }
 
-  // Spawns a shell for the given tile ID and streams its output back tagged with that ID.
-  spawn(id, webContents) {
+  spawn(id, webContents, onExit) {
+    // Idempotent: the renderer signals pty:ready from inside TerminalTile's
+    // useEffect, which can fire twice in React StrictMode. Without this guard
+    // we'd fork two shells per tile and the duplicate's output would interleave.
+    if (this.processes.has(id)) return
+
     const shell = process.env.SHELL || '/bin/zsh'
 
-    const process = pty.spawn(shell, [], {
+    const proc = pty.spawn(shell, [], {
       name: 'xterm-256color',
       cols: 80,
       rows: 24,
@@ -24,23 +34,31 @@ class PtyManager {
       env: process.env
     })
 
-    process.onData((data) => {
+    proc.onData((data) => {
       webContents.send('pty:data', { id, data })
     })
 
-    this.processes.set(id, process)
+    // Shell terminated: user typed `exit`, hit Ctrl-D, or the shell crashed.
+    // Drop the dead handle from the map so a stray pty:write can't reach it,
+    // then notify the caller so it can collapse the tile and rebroadcast
+    // layout. Without this the tile becomes a zombie — visible, dead, and
+    // unable to receive input until the user manually presses Q.
+    proc.onExit(() => {
+      this.processes.delete(id)
+      onExit?.()
+    })
+
+    this.processes.set(id, proc)
   }
 
-  // Kills the shell for a single tile (called when that tile is closed).
   kill(id) {
-    const process = this.processes.get(id)
-    if (process) {
-      process.kill()
+    const proc = this.processes.get(id)
+    if (proc) {
+      proc.kill()
       this.processes.delete(id)
     }
   }
 
-  // Kills all shells (called on app quit).
   killAll() {
     for (const [id] of this.processes) {
       this.kill(id)

@@ -22,6 +22,11 @@ function TerminalTile({ id, isFocused }) {
 
     terminalRef.current = terminal
 
+    terminal.attachCustomKeyEventHandler((e) => {
+      if (e.shiftKey && e.key === 'Enter') return false
+      return true
+    })
+
     // pty:data - only render output belonging to this tile.
     window.pty.onData((tileId, data) => {
       if (tileId === id) terminal.write(data)

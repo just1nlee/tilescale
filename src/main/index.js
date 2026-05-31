@@ -100,6 +100,17 @@ function createWindow() {
     }
   }
 
+  // A real click inside a browser tile's live page. Focus that tile and, if
+  // we're in TILE mode, drop into INSERT — mirroring a click on a terminal
+  // tile. Unlike onViewFocus this only fires on an actual mouseDown, so a
+  // freshly spawned tile's auto-focus never trips it. The mode toggle's
+  // onChange hook re-syncs native focus back onto the clicked page.
+  browserManager.onViewClick = (id) => {
+    tileManager.setFocus(id)
+    if (modeManager.currentMode === 'TILE') modeManager.toggle()
+    broadcastLayout(mainWindow.webContents)
+  }
+
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
     // Note: we do NOT spawn the initial shell here. ready-to-show only means

@@ -36,9 +36,11 @@ class BrowserManager {
     this.parent = null // the BrowserWindow whose contentView we attach to
     // Hooks wired up by main:
     //   onShiftEnter()   — Shift+Enter pressed while a browser view had focus
-    //   onViewFocus(id)  — the user clicked into a browser tile's page
+    //   onViewFocus(id)  — the native view gained OS focus (click OR auto-focus)
+    //   onViewClick(id)  — a real pointer press landed inside the live page
     this.onShiftEnter = null
     this.onViewFocus = null
+    this.onViewClick = null
     // Tile id whose React URL bar currently holds focus. While set, we must not
     // steal OS focus to that tile's native page or the user can't type a URL.
     this.editingId = null
@@ -97,6 +99,15 @@ class BrowserManager {
     // view floats above the placeholder). Tell main so it can mark this tile
     // focused and drop into INSERT — mirroring a terminal-tile click.
     view.webContents.on('focus', () => this.onViewFocus?.(id))
+
+    // A genuine pointer press inside the page. Unlike the 'focus' event above
+    // — which also fires when a freshly spawned view auto-focuses after load —
+    // a mouseDown only happens when the user actually clicks. That lets main
+    // switch into INSERT on a real click without a newly spawned tile jumping
+    // into INSERT on its own.
+    view.webContents.on('input-event', (_event, input) => {
+      if (input.type === 'mouseDown') this.onViewClick?.(id)
+    })
 
     this.views.set(id, view)
   }
@@ -216,8 +227,13 @@ class BrowserManager {
       return
     }
 
-    // React owns the keyboard now; clear any stale URL-bar editing flag.
-    this.editingId = null
+    // React owns the keyboard now. We must NOT clear editingId here: clicking
+    // the URL bar fires its onFocus (setEditing → editingId) and then bubbles
+    // to a tile click that focuses the tile while still in TILE mode, running
+    // this sync once before the mode flips to INSERT. Wiping editingId at that
+    // moment would make the subsequent INSERT sync steal focus to the native
+    // page instead of leaving it on the URL bar. The bar's onBlur clears the
+    // flag instead.
     this.focusParent()
   }
 }

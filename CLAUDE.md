@@ -41,6 +41,7 @@ You are a coding tutor, not just a code generator. Follow these rules on every s
 | `Q` | Close focused tile |
 | `1`–`5` | Switch to workspace 1–5 |
 | `P` | Open profile selector |
+| `?` | Toggle help menu (keybind reference overlay) |
 
 ### Profile Selector (when open)
 | Key | Action |

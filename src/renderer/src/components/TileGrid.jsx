@@ -39,26 +39,47 @@ function TileGrid({ layout, onTileClick }) {
             }}
           >
             {isActive && ws.tiles.length === 0 && (
-              <pre
+              <div
                 style={{
                   position: 'absolute',
                   top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
-                  margin: 0,
-                  fontFamily:
-                    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                  fontSize: '16px',
-                  lineHeight: 1.2,
-                  whiteSpace: 'pre',
-                  color: 'rgb(255, 255, 255)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
                   userSelect: 'none',
-                  pointerEvents: 'none',
-                  textShadow: '0 0 16px rgba(255, 255, 255, 0.12)'
+                  pointerEvents: 'none'
                 }}
               >
-                {asciiArt}
-              </pre>
+                <pre
+                  style={{
+                    margin: 0,
+                    fontFamily:
+                      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                    fontSize: '16px',
+                    lineHeight: 1.2,
+                    whiteSpace: 'pre',
+                    color: 'rgb(255, 255, 255)',
+                    textShadow: '0 0 16px rgba(255, 255, 255, 0.12)'
+                  }}
+                >
+                  {asciiArt}
+                </pre>
+                <span
+                  style={{
+                    marginTop: '18px',
+                    fontFamily: "'Menlo', 'Lucida Console', monospace",
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    letterSpacing: '2px',
+                    textTransform: 'uppercase',
+                    color: 'rgba(255, 255, 255, 0.4)'
+                  }}
+                >
+                  Press ? for help
+                </span>
+              </div>
             )}
             {ws.tiles.map((tile) => {
               if (!tile.bounds) return null

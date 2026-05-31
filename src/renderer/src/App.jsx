@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import TileGrid from './components/TileGrid'
 import StatusBar from './components/StatusBar'
+import HelpMenu from './components/HelpMenu'
 
 function App() {
   const [mode, setMode] = useState('TILE')
@@ -17,6 +18,9 @@ function App() {
   // what drives P (open/close) and W/S·J/K (move the highlight cursor).
   const [selectorOpen, setSelectorOpen] = useState(false)
   const [highlightedId, setHighlightedId] = useState(null)
+  // Help overlay. Toggled with `?` in TILE mode; like the profile selector it
+  // floats above the React page, so it shares the native-view overlay hiding.
+  const [helpOpen, setHelpOpen] = useState(false)
 
   useEffect(() => {
     const unsubMode = window.mode.onChange((m) => setMode(m))
@@ -33,10 +37,11 @@ function App() {
   }, [])
 
   // Native browser views composite above the React page and would cover the
-  // profile dropdown, so ask main to hide them whenever the selector is open.
+  // profile dropdown or help menu, so ask main to hide them whenever either
+  // overlay is open.
   useEffect(() => {
-    window.browser.setOverlay(selectorOpen)
-  }, [selectorOpen])
+    window.browser.setOverlay(selectorOpen || helpOpen)
+  }, [selectorOpen, helpOpen])
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -49,6 +54,9 @@ function App() {
       if (e.shiftKey && e.key === ' ') {
         e.preventDefault()
         e.stopPropagation()
+        // Close help before leaving TILE mode — otherwise the overlay would
+        // linger in INSERT, hiding the browser view the user wants to type in.
+        setHelpOpen(false)
         window.mode.toggle()
         return
       }
@@ -59,6 +67,15 @@ function App() {
       if (mode !== 'TILE') return
 
       const key = e.key.toLowerCase()
+
+      // Help overlay owns the keyboard while open: ? or Escape closes it, and
+      // every other key is swallowed so tile commands don't fire behind it.
+      if (helpOpen) {
+        e.preventDefault()
+        e.stopPropagation()
+        if (key === '?' || key === 'escape') setHelpOpen(false)
+        return
+      }
 
       // While the profile selector is open it owns navigation: W/S·J/K (and
       // arrows) move the highlight, Enter commits the switch, P/Escape close.
@@ -104,6 +121,14 @@ function App() {
         return
       }
 
+      // ? opens the help overlay.
+      if (key === '?') {
+        e.preventDefault()
+        e.stopPropagation()
+        setHelpOpen(true)
+        return
+      }
+
       e.preventDefault()
       e.stopPropagation()
 
@@ -141,7 +166,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown, true)
     return () => window.removeEventListener('keydown', handleKeyDown, true)
-  }, [mode, layout, profiles, activeProfileId, selectorOpen, highlightedId])
+  }, [mode, layout, profiles, activeProfileId, selectorOpen, highlightedId, helpOpen])
 
   const handleTileClick = (id) => {
     window.tile.focus(id)
@@ -190,6 +215,7 @@ function App() {
         highlightedId={highlightedId}
         onHighlightChange={setHighlightedId}
       />
+      {helpOpen && <HelpMenu onClose={() => setHelpOpen(false)} />}
     </div>
   )
 }

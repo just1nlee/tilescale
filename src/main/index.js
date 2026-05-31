@@ -75,13 +75,24 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
-
-  // Renderer reports its real pixel size → recalculate bounds → push layout back.
-  // event.sender is the webContents that sent the message.
+  // Tile IPC listeners
   ipcMain.on('tile:resize', (event, { width, height }) => {
     tileManager.setWindowSize(width, height)
+    event.sender.send('tile:layout', tileManager.getLayout())
+  })
+
+  ipcMain.on('tile:spawn', (event, type) => {
+    tileManager.addTile(type)
+    event.sender.send('tile:layout', tileManager.getLayout())
+  })
+
+  ipcMain.on('tile:close', (event, id) => {
+    tileManager.removeTile(id)
+    event.sender.send('tile:layout', tileManager.getLayout())
+  })
+
+  ipcMain.on('tile:focus', (event, id) => {
+    tileManager.setFocus(id)
     event.sender.send('tile:layout', tileManager.getLayout())
   })
 

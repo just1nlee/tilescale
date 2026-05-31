@@ -49,6 +49,7 @@ function StatusBar({
   return (
     <div style={{
       flexShrink: 0,
+      position: 'relative',
       height: '36px',
       background: 'rgba(20, 20, 20, 0.55)',
       border: '1px solid rgba(255, 255, 255, 0.18)',
@@ -66,6 +67,26 @@ function StatusBar({
       WebkitBackdropFilter: 'blur(20px) saturate(160%)',
       boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
     }}>
+      {/* Brand mark: absolutely centered so it sits at the true midpoint of
+          the bar independent of the flex children's widths. pointer-events
+          none lets clicks fall through to whatever is under it (the profile
+          selector lives in the same horizontal zone). */}
+      <span style={{
+        position: 'absolute',
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+        pointerEvents: 'none',
+        color: 'rgba(255, 255, 255, 0.35)',
+        fontSize: '12px',
+        fontWeight: 700,
+        letterSpacing: '2.5px',
+        textTransform: 'uppercase',
+        lineHeight: 1,
+        userSelect: 'none',
+      }}>
+        Tilescale
+      </span>
       <span style={{
         background: modeStyle.bg,
         color: modeStyle.text,

@@ -136,8 +136,22 @@ class TileManager {
     [{ x: 0, y: 0, w: 0.5, h: 0.5 }, { x: 0.5, y: 0, w: 0.5, h: 0.5 }, { x: 0, y: 0.5, w: 0.5, h: 0.5 }, { x: 0.5, y: 0.5, w: 0.5, h: 0.5 }]
   ]
 
+  // Recompute bounds for EVERY workspace, not just the active one. The layout
+  // math depends only on window size and tile count — both workspace-agnostic —
+  // so there's no reason inactive workspaces should sit with null bounds. Doing
+  // them all means a restored session's tiles in workspaces 2–5 get bounds
+  // immediately, so TileGrid mounts them (hidden via display:none) and their
+  // terminals spawn their ptys right away instead of lazily on first visit.
+  // This keeps inactive-workspace shells running in the background as the spec
+  // promises, and matches how browser views are already created eagerly.
   _recalculate() {
-    const tiles = this._ws().tiles
+    for (let i = 1; i <= 5; i++) {
+      this._layoutWorkspace(this.workspaces[i].tiles)
+    }
+  }
+
+  // Assign equal-split bounds to one workspace's tile array in place.
+  _layoutWorkspace(tiles) {
     const count = tiles.length
     if (count === 0) return
 

@@ -11,7 +11,7 @@ const tileManager = new TileManager()
 const modeManager = new ModeManager()
 
 // Start with one terminal tile so there's something to display on launch.
-tileManager.addTile('terminal')
+const initialTileId = tileManager.addTile('terminal')
 
 let mainWindow = null
 
@@ -43,7 +43,7 @@ function createWindow() {
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
     // Spawn the shell once the renderer is ready to receive pty:data messages.
-    ptyManager.spawn(mainWindow.webContents)
+    ptyManager.spawn(initialTileId, mainWindow.webContents)
     modeManager.attach(mainWindow.webContents)
   })
 
@@ -82,12 +82,15 @@ app.whenReady().then(() => {
   })
 
   ipcMain.on('tile:spawn', (event, type) => {
-    tileManager.addTile(type)
+    const id = tileManager.addTile(type)
+    if (type === 'terminal') ptyManager.spawn(id, event.sender)
     event.sender.send('tile:layout', tileManager.getLayout())
   })
 
   ipcMain.on('tile:close', (event, id) => {
+    const tile = tileManager.getTile(id)
     tileManager.removeTile(id)
+    if (tile?.type === 'terminal') ptyManager.kill(id)
     event.sender.send('tile:layout', tileManager.getLayout())
   })
 
@@ -121,8 +124,8 @@ app.whenReady().then(() => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
-  // Kill the shell process so it doesn't linger after the app closes.
-  ptyManager.kill()
+  // Kill all shell processes so they don't linger after the app closes.
+  ptyManager.killAll()
   globalShortcut.unregisterAll()
   if (process.platform !== 'darwin') {
     app.quit()

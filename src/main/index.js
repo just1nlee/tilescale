@@ -360,6 +360,12 @@ app.whenReady().then(() => {
       mainWindow.hide()
       app.hide()
     } else {
+      // app.hide() above deactivated the whole app, so on macOS
+      // mainWindow.focus() alone is a no-op — the window appears but never
+      // becomes key, and our keyboard-driven shortcuts stay dead until the
+      // user clicks it. app.focus({ steal: true }) reactivates the app and
+      // pulls keyboard focus across from whatever app is frontmost.
+      app.focus({ steal: true })
       mainWindow.show()
       mainWindow.focus()
       syncBrowserFocus()

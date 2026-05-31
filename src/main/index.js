@@ -27,7 +27,7 @@ function createWindow() {
     y: 0,
     show: false,
     frame: false,
-    roundedCorners: false,
+    roundedCorners: true,
     alwaysOnTop: true,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),

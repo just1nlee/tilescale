@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 // Must match BrowserManager.CHROME_HEIGHT in main: the native WebContentsView
 // is positioned to start exactly this many pixels below the tile's content
@@ -30,9 +30,26 @@ const buttonStyle = {
 // the optional chaining keeps them inert instead of crashing.
 function BrowserTile({ id }) {
   const [url, setUrl] = useState('')
+  const [nav, setNav] = useState({ canGoBack: false, canGoForward: false })
+  // While the user is typing in the URL bar, ignore incoming state pushes so a
+  // mid-typed URL isn't overwritten by a did-navigate of the previous page.
+  const editingRef = useRef(false)
+
+  useEffect(() => {
+    const unsub = window.browser?.onState((state) => {
+      if (state.id !== id) return
+      setNav({ canGoBack: state.canGoBack, canGoForward: state.canGoForward })
+      if (!editingRef.current) setUrl(state.url)
+    })
+    // Mount may happen after the tile's first navigation already fired, so pull
+    // the current state explicitly.
+    window.browser?.requestState(id)
+    return () => unsub?.()
+  }, [id])
 
   const submit = (e) => {
     e.preventDefault()
+    editingRef.current = false
     window.browser?.navigate(id, url)
   }
 
@@ -48,10 +65,20 @@ function BrowserTile({ id }) {
           fontFamily: 'monospace'
         }}
       >
-        <button type="button" style={buttonStyle} onClick={() => window.browser?.back(id)}>
+        <button
+          type="button"
+          disabled={!nav.canGoBack}
+          style={{ ...buttonStyle, opacity: nav.canGoBack ? 1 : 0.35, cursor: nav.canGoBack ? 'pointer' : 'default' }}
+          onClick={() => window.browser?.back(id)}
+        >
           ‹
         </button>
-        <button type="button" style={buttonStyle} onClick={() => window.browser?.forward(id)}>
+        <button
+          type="button"
+          disabled={!nav.canGoForward}
+          style={{ ...buttonStyle, opacity: nav.canGoForward ? 1 : 0.35, cursor: nav.canGoForward ? 'pointer' : 'default' }}
+          onClick={() => window.browser?.forward(id)}
+        >
           ›
         </button>
         <button type="button" style={buttonStyle} onClick={() => window.browser?.reload(id)}>
@@ -61,6 +88,8 @@ function BrowserTile({ id }) {
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
+            onFocus={() => (editingRef.current = true)}
+            onBlur={() => (editingRef.current = false)}
             placeholder="Enter URL"
             spellCheck={false}
             style={{

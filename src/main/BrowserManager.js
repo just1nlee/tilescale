@@ -14,6 +14,17 @@ const CHROME_HEIGHT = 36
 // overlapping the rounded border.
 const INSET = 11
 
+// Turn whatever the user typed in the URL bar into a loadable URL: keep
+// explicit schemes as-is, treat bare "domain.tld" as https, and fall back to
+// a Google search for anything else (e.g. multi-word queries).
+function normalizeUrl(input) {
+  const s = (input ?? '').trim()
+  if (!s) return null
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) return s
+  if (/^[^\s]+\.[^\s]+$/.test(s)) return `https://${s}`
+  return `https://www.google.com/search?q=${encodeURIComponent(s)}`
+}
+
 // BrowserManager is the main-process owner of every browser tile's native
 // WebContentsView — the browser counterpart to PtyManager. React never holds
 // the web content; it only draws chrome. This class creates the views,
@@ -54,7 +65,49 @@ class BrowserManager {
       return { action: 'deny' }
     })
 
+    // Whenever the page navigates or its load state flips, push fresh state to
+    // the URL bar so it tracks the real page (typed nav, link clicks, redirects,
+    // back/forward all funnel through these events).
+    const emit = () => this.emitState(id)
+    view.webContents.on('did-navigate', emit)
+    view.webContents.on('did-navigate-in-page', emit)
+    view.webContents.on('did-start-loading', emit)
+    view.webContents.on('did-stop-loading', emit)
+
     this.views.set(id, view)
+  }
+
+  // Push one tile's navigation state to the renderer's URL bar. Sent to the
+  // window's main page (React), not the native view itself.
+  emitState(id) {
+    const view = this.views.get(id)
+    if (!view || !this.parent) return
+    const wc = view.webContents
+    this.parent.webContents.send('browser:state', {
+      id,
+      url: wc.getURL(),
+      canGoBack: wc.navigationHistory.canGoBack(),
+      canGoForward: wc.navigationHistory.canGoForward(),
+      loading: wc.isLoading()
+    })
+  }
+
+  navigate(id, input) {
+    const view = this.views.get(id)
+    const url = normalizeUrl(input)
+    if (view && url) view.webContents.loadURL(url)
+  }
+
+  back(id) {
+    this.views.get(id)?.webContents.navigationHistory.goBack()
+  }
+
+  forward(id) {
+    this.views.get(id)?.webContents.navigationHistory.goForward()
+  }
+
+  reload(id) {
+    this.views.get(id)?.webContents.reload()
   }
 
   _destroy(id) {

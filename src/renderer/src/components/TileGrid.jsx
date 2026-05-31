@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import TerminalTile from './TerminalTile'
+import BrowserTile from './BrowserTile'
 
 function TileGrid({ layout, onTileClick }) {
   const containerRef = useRef(null)
@@ -59,6 +60,7 @@ function TileGrid({ layout, onTileClick }) {
                   {tile.type === 'terminal' && (
                     <TerminalTile id={tile.id} isFocused={isActive && focused} />
                   )}
+                  {tile.type === 'browser' && <BrowserTile id={tile.id} />}
                 </div>
               )
             })}
